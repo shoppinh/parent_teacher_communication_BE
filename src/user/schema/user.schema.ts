@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { BaseSchema } from '../../shared/schema/base.schema';
 import { Exclude } from 'class-transformer';
 import { Document } from 'mongoose';
+import { ConstantRoles } from 'src/shared/utils/constant/role';
 
 export type UserDocument = User & Document;
 
@@ -49,6 +50,8 @@ export class User extends BaseSchema {
   @Prop({ required: false, default: true })
   isActive?: boolean;
 
+  @Prop({ required: true, default: ConstantRoles.PARENT })
+  role: string;
   // @Prop({ required: false })
   // twoFactorEnabled: string;
 

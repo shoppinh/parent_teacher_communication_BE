@@ -1,0 +1,5 @@
+{
+  "unauthorized_inactive": "Your account has been deactivated. Please contact your site administrator",
+  "permission_denied": "You don't have permission to access this function",
+  "unauthorized": "These credentials do not match our records"
+}

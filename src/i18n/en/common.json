@@ -1,0 +1,4 @@
+{
+  "required_field": "{fieldName} is required",
+  "not_found": "{fieldName} not found"
+}
