@@ -9,13 +9,12 @@ import * as path from 'path';
 import * as winston from 'winston';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { PostModule } from './post/post.module';
 import { SettingsModule } from './settings/settings.module';
 import { AppInterceptor } from './shared/interceptor/app.interceptor';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
-import { AuthModule } from './auth/auth.module';
-import { UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -31,7 +30,7 @@ import { UserModule } from './user/user.module';
     I18nModule.forRoot({
       fallbackLanguage: process.env.DEFAULT_LANGUAGE || 'en',
       loaderOptions: {
-        path: path.join(__dirname, '..', 'src/i18n/'),
+        path: path.join(__dirname, '/i18n/'),
         watch: true,
       },
       resolvers: [new HeaderResolver(['locale'])],
@@ -58,8 +57,10 @@ import { UserModule } from './user/user.module';
     SettingsModule,
     AuthModule,
     UserModule,
+    PostModule,
+    AdminModule,
   ],
-  controllers: [AppController, AuthController],
+  controllers: [AppController],
   providers: [
     {
       provide: APP_INTERCEPTOR,
