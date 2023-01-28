@@ -12,10 +12,10 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, document);
   }
-  await app.listen(process.env.PORT, '0.0.0.0', () => {
+  const server = await app.listen(process.env.PORT, '0.0.0.0', () => {
     console.log('\x1b[33m%s\x1b[0m', `Server :: Running @ 'http://localhost:${process.env.PORT}'`);
     console.log('\x1b[33m%s\x1b[0m', `Swagger :: Running @ 'http://localhost:${process.env.PORT}/swagger'`);
   });
-  // server.setTimeout(Number(process.env.APP_TIME_OUT));
+  server.setTimeout(Number(process.env.APP_TIME_OUT));
 }
 bootstrap();

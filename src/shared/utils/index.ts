@@ -2,6 +2,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js';
 import { I18nContext } from 'nestjs-i18n';
 import * as _ from 'lodash';
+import { genSalt, hash } from 'bcryptjs';
 export function isEmptyArray(objects: any) {
   if (!objects) {
     return true;
@@ -78,4 +79,8 @@ export const validateFields = async (fields: any, message: string, i18n: I18nCon
 };
 export const convertKeyRoles = (key: string) => {
   return key?.toString()?.trim()?.split(' ')?.join('_')?.toLocaleUpperCase();
+};
+export const passwordGenerate = async (password: string) => {
+  const salt = await genSalt(10);
+  return await hash(password, salt);
 };

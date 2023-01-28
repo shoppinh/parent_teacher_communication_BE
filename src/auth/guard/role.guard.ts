@@ -14,8 +14,8 @@ export class RolesGuard implements CanActivate {
     }
     const user = context.switchToHttp()?.getRequest()?.user ?? null;
 
-    if (user && !isEmptyArray(user?.roles)) {
-      const isCheckRole = user?.roles.filter((o1) => roles.some((o2) => o1 === o2))?.length > 0;
+    if (user && !isEmptyArray(user?.role)) {
+      const isCheckRole = roles.includes(user?.role);
       if (!isCheckRole) {
         throw new HttpException(await this.i18n.t('user.permission_denied'), HttpStatus.NON_AUTHORITATIVE_INFORMATION);
       }

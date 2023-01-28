@@ -1,6 +1,6 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { WinstonModule } from 'nest-winston';
@@ -15,6 +15,10 @@ import { SettingsModule } from './settings/settings.module';
 import { AppInterceptor } from './shared/interceptor/app.interceptor';
 import { UserModule } from './user/user.module';
 import { AdminModule } from './admin/admin.module';
+import { HttpExceptionFilter } from './shared/response/http-exception.filter';
+import { ParentModule } from './parent/parent.module';
+import { TeacherModule } from './teacher/teacher.module';
+import { ClassModule } from './class/class.module';
 
 @Module({
   imports: [
@@ -59,6 +63,9 @@ import { AdminModule } from './admin/admin.module';
     UserModule,
     PostModule,
     AdminModule,
+    ParentModule,
+    TeacherModule,
+    ClassModule,
   ],
   controllers: [AppController],
   providers: [
@@ -66,10 +73,10 @@ import { AdminModule } from './admin/admin.module';
       provide: APP_INTERCEPTOR,
       useClass: AppInterceptor,
     },
-    // {
-    //   provide: APP_FILTER,
-    //   useClass: HttpExceptionFilter,
-    // },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({}),

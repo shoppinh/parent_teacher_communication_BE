@@ -1,0 +1,10 @@
+{
+  "existed_phone_number": "This phone number is already registered",
+  "existed_email": "This email is already registered",
+  "nonexistent_user": "This user is not registered",
+  "nonexistent_class": "This class is not registered",
+  "nonexistent_parent": "This parent is not registered",
+  "existed_class_name": "This class name is already registered",
+  "internal_server_error": "Internal server error",
+  "existed_subject_name": "This subject name is already registered"
+}

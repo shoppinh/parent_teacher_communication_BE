@@ -16,8 +16,7 @@ export class RoleService extends BaseService<Role> {
 
   async getAllRole() {
     try {
-      const result = await this.findAll({});
-      return result;
+      return await this.findAll({});
     } catch (error) {
       console.log('🚀 ~ file: role.service.ts:22 ~ RoleService ~ getAllRole ~ error', error);
     }

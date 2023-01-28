@@ -1,5 +1,6 @@
 {
   "unauthorized_inactive": "Your account has been deactivated. Please contact your site administrator",
   "permission_denied": "You don't have permission to access this function",
-  "unauthorized": "These credentials do not match our records"
+  "unauthorized": "These credentials do not match our records",
+  "phone_invalid_field": "The phone number is invalid"
 }
