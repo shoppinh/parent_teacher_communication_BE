@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { convertKeyRoles, isEmptyObjectOrArray, isPhoneNumberValidation, passwordGenerate, validateFields } from '../../shared/utils';
+import { convertKeyRoles, isEmptyObjectOrArray, isPhoneNumberValidation, isValidEmail, passwordGenerate, validateFields } from '../../shared/utils';
 import { Types } from 'mongoose';
 import { ApiResponse } from '../../shared/response/api-response';
 import { AddParentDto } from '../dto/add-parent.dto';
@@ -17,6 +17,7 @@ import { AddTeacherDto } from '../dto/add-teacher.dto';
 import { TeacherService } from '../../teacher/teacher.service';
 import { AddSubjectDto } from '../dto/add-subject.dto';
 import { SubjectService } from './subject.service';
+import { GetAllUserDto } from '../dto/get-all-user.dto';
 
 @Injectable()
 export class AdminService {
@@ -210,6 +211,10 @@ export class AdminService {
       throw new HttpException(await i18n.translate(`user.phone_invalid_field`), HttpStatus.BAD_REQUEST);
     }
 
+    if (!isValidEmail(email)) {
+      throw new HttpException(await i18n.translate(`user.email_invalid_field`), HttpStatus.BAD_REQUEST);
+    }
+
     //Check Email
     const userExistedEmail = await this._userService.findOne({ email });
     if (userExistedEmail && userExistedEmail?._id) {
@@ -247,5 +252,121 @@ export class AdminService {
 
     const user = await this._userService.create(userInstance);
     return user;
+  }
+
+  async updateUser(userDto: AddUserDto, i18n: I18nContext, id: string) {
+    try {
+      const { mobilePhone, username, email, firstName, lastName, isActive, roleKey, password } = userDto;
+      await validateFields({ id, username, mobilePhone, email }, `common.required_field`, i18n);
+
+      if (!isPhoneNumberValidation(mobilePhone)) {
+        throw new HttpException(await i18n.translate(`user.phone_invalid_field`), HttpStatus.BAD_REQUEST);
+      }
+      if (!isValidEmail(email)) {
+        throw new HttpException(await i18n.translate(`user.email_invalid_field`), HttpStatus.BAD_REQUEST);
+      }
+      //Check Email
+      const userExistedEmail = await this._userService.findOne({ email });
+      if (userExistedEmail && userExistedEmail?._id) {
+        throw new HttpException(await i18n.translate('message.existed_email'), HttpStatus.CONFLICT);
+      }
+
+      // Check phone
+      const userExistedPhone = await this._userService.findOne({ mobilePhone });
+      if (userExistedPhone && userExistedPhone?._id) {
+        throw new HttpException(await i18n.translate('message.existed_phone_number'), HttpStatus.CONFLICT);
+      }
+
+      //Check if role exists
+      const getAllRole = await this._roleService.getAllRole();
+      const allRoleKeyExist = getAllRole.map((el) => el?.roleKey?.toString().toLocaleUpperCase());
+      const isRoleKeyInAllRole = allRoleKeyExist.includes(roleKey.toLocaleUpperCase());
+      if (!isRoleKeyInAllRole) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'roleKey' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      //User need to update
+      const user = await this._userService.findOne({ _id: new Types.ObjectId(id) });
+      if (!user) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const userInstance: any = {
+        mobilePhone: mobilePhone.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        isActive: isActive ? isActive : user.isActive,
+        firstname: firstName ? firstName : user.firstname,
+        lastname: lastName ? lastName : user.lastname,
+        role: roleKey ? roleKey : user.role,
+        password: password ? await passwordGenerate(password) : user.password,
+      };
+      const result = await this._userService.update(userInstance, user._id);
+      return new ApiResponse(result);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteUser(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const user = await this._userService.findOne({ _id: new Types.ObjectId(id) });
+      const parent = await this._parentService.findOne({ userId: new Types.ObjectId(id) });
+      const teacher = await this._teacherService.findOne({ userId: new Types.ObjectId(id) });
+
+      if (!user) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (parent) {
+        await this._parentService.delete(parent._id);
+      }
+      if (teacher) {
+        await this._teacherService.delete(teacher._id);
+      }
+      const result = await this._userService.delete(user._id);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+  async getAllUser(getAllUserDto: GetAllUserDto, i18n: I18nContext) {
+    try {
+      const { limit, sort, search } = getAllUserDto;
+      const sortObj = {};
+      sortObj[sort] = order;
+      const query = {};
+      if (search) {
+        query['$or'] = [
+          { username: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { mobilePhone: { $regex: search, $options: 'i' } },
+        ];
+      }
+      const result = await this._userService.findAll(query, page, limit, sortObj);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 }
