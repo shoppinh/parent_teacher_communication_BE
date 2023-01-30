@@ -33,6 +33,8 @@ export class AdminController {
     return this._adminService.addRoles(roles, i18n);
   }
 
+  // User controller collection
+
   @Get('user')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
@@ -69,7 +71,9 @@ export class AdminController {
     return this._adminService.deleteUser(id, i18n);
   }
 
-  @Post('add-parent')
+  // Parent Controller Collection
+
+  @Post('parent')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
@@ -77,6 +81,36 @@ export class AdminController {
   async addParent(@Body() parentDto: AddParentDto, @I18n() i18n: I18nContext) {
     return this._adminService.addParent(parentDto, i18n);
   }
+
+  @Get('parent')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.SUPER_USER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getAllParent(@I18n() i18n: I18nContext) {}
+
+  @Get('parent/:id')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.SUPER_USER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getParentById(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+
+  @Put('parent/:id')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.SUPER_USER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async updateParent(@Body() parentDto: AddParentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {}
+
+  @Delete('parent/:id')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.SUPER_USER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async deleteParent(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+
+  // Student Controller Collection
 
   @Post('add-student')
   @ApiBearerAuth()
@@ -87,6 +121,8 @@ export class AdminController {
     return this._adminService.addStudent(studentDto, i18n);
   }
 
+  // Class Controller Collection
+
   @Post('add-class')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
@@ -95,6 +131,8 @@ export class AdminController {
   async addClass(@Body() classDto: AddClassDto, @I18n() i18n: I18nContext) {
     return this._adminService.addClass(classDto, i18n);
   }
+
+  // Teacher Controller Collection
 
   @Post('add-teacher')
   @ApiBearerAuth()
@@ -105,6 +143,8 @@ export class AdminController {
     return this._adminService.addTeacher(teacherDto, i18n);
   }
 
+  // Subject Controller Collection
+
   @Post('add-subject')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
@@ -113,4 +153,6 @@ export class AdminController {
   async addSubject(@Body() subjectDto: AddSubjectDto, @I18n() i18n: I18nContext) {
     return this._adminService.addSubject(subjectDto, i18n);
   }
+
+  // Teacher Assignment Controller Collection
 }
