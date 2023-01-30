@@ -350,18 +350,9 @@ export class AdminService {
   }
   async getAllUser(getAllUserDto: GetAllUserDto, i18n: I18nContext) {
     try {
-      const { limit, sort, search } = getAllUserDto;
-      const sortObj = {};
-      sortObj[sort] = order;
-      const query = {};
-      if (search) {
-        query['$or'] = [
-          { username: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { mobilePhone: { $regex: search, $options: 'i' } },
-        ];
-      }
-      const result = await this._userService.findAll(query, page, limit, sortObj);
+      const { skip, limit, sort, search } = getAllUserDto;
+
+      const result = await this._userService.getUserList(sort, search, limit, skip);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
