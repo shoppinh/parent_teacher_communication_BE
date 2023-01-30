@@ -6,21 +6,11 @@ import { IsOptional, IsString } from 'class-validator';
 
 export class UserSortOrder extends SortOrderDto {
   @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  firstName: SortOrder;
-  @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  lastName: SortOrder;
-  @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
   email: SortOrder;
   @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  phone: SortOrder;
+  mobilePhone: SortOrder;
   @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  role: SortOrder;
-  @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  status: SortOrder;
-  @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  createdAt: SortOrder;
-  @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  updatedAt: SortOrder;
+  username: SortOrder;
 }
 
 export class GetAllUserDto extends PaginationDto {

@@ -38,7 +38,7 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllUser(@Body() getAllUserDto: GetAllUserDto,@I18n() i18n: I18nContext) {
+  async getAllUser(@Body() getAllUserDto: GetAllUserDto, @I18n() i18n: I18nContext) {
     return this._adminService.getAllUser(getAllUserDto, i18n);
   }
 
