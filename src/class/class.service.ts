@@ -3,6 +3,8 @@ import { BaseService } from '../shared/service/base.service';
 import { Class, ClassDocument } from './schema/class.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ClassSortOrder } from '../admin/dto/get-all-class.dto';
+import { isEmptyObject } from '../shared/utils';
 
 @Injectable()
 export class ClassService extends BaseService<Class> {
@@ -12,5 +14,43 @@ export class ClassService extends BaseService<Class> {
   ) {
     super();
     this.model = _classDocumentModel;
+  }
+
+  async getClassList(sort: Partial<ClassSortOrder>, search: string, limit: number, skip: number) {
+    const aggregation = this.model.aggregate();
+    const paginationStage = [];
+    if (search) {
+      aggregation.match({
+        $or: [
+          {
+            name: { $eq: search },
+          },
+        ],
+      });
+    }
+    if (skip) {
+      paginationStage.push({
+        $skip: skip,
+      });
+    }
+    if (limit) {
+      paginationStage.push({
+        $limit: limit,
+      });
+    }
+
+    if (sort && !isEmptyObject(sort)) {
+      aggregation.sort(sort).collation({ locale: 'en' });
+    }
+    return aggregation
+      .facet({
+        totalRecords: [
+          {
+            $count: 'total',
+          },
+        ],
+        data: paginationStage,
+      })
+      .exec();
   }
 }

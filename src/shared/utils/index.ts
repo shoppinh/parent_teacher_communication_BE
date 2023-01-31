@@ -84,3 +84,16 @@ export const passwordGenerate = async (password: string) => {
   const salt = await genSalt(10);
   return await hash(password, salt);
 };
+export function toListResponse(objects: any) {
+  let results = {
+    totalItem: 0,
+    data: [],
+  };
+  if (!isEmptyObjectOrArray(objects[0])) {
+    results = {
+      totalItem: objects[1],
+      data: objects[0],
+    };
+  }
+  return results;
+}

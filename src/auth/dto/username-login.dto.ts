@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiModelProperty } from '@nestjs/swagger/dist/decorators/api-model-property.decorator';
 
 export class UsernameLoginDto {
@@ -13,5 +13,6 @@ export class UsernameLoginDto {
   password: string;
 
   @ApiModelProperty({ required: false })
+  @IsOptional()
   isRemember: boolean;
 }

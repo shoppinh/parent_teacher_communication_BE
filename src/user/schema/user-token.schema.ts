@@ -56,4 +56,4 @@ export class UserToken extends BaseSchema {
 export const UserTokenSchema = SchemaFactory.createForClass(UserToken);
 
 //Index
-UserTokenSchema.index({ accessToken: 1, accessTokenDot: 1 });
+UserTokenSchema.index({ accessToken: 1 });

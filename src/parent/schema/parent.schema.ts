@@ -1,6 +1,7 @@
 import { BaseSchema } from 'src/shared/schema/base.schema';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from '../../user/schema/user.schema';
 
 export type ParentDocument = Parent & Document;
 
@@ -10,12 +11,10 @@ export type ParentDocument = Parent & Document;
   },
 })
 export class Parent extends BaseSchema {
-  @Prop({ required: true })
-  userId: string;
+  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  userId: User;
   @Prop({ required: true })
   address: string;
-  @Prop({ required: true })
-  isActive: boolean;
   @Prop({ required: false })
   ward?: string;
   @Prop({ required: false })
