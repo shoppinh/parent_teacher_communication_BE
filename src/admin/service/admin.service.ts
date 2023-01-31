@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { convertKeyRoles, isEmptyObjectOrArray, isPhoneNumberValidation, isValidEmail, passwordGenerate, validateFields } from '../../shared/utils';
+import { convertKeyRoles, isEmptyObjectOrArray, isPhoneNumberValidation, isValidEmail, passwordGenerate, toListResponse, validateFields } from '../../shared/utils';
 import { Types } from 'mongoose';
 import { ApiResponse } from '../../shared/response/api-response';
 import { AddParentDto } from '../dto/add-parent.dto';
@@ -18,6 +18,9 @@ import { TeacherService } from '../../teacher/teacher.service';
 import { AddSubjectDto } from '../dto/add-subject.dto';
 import { SubjectService } from './subject.service';
 import { GetAllUserDto } from '../dto/get-all-user.dto';
+import { GetAllStudentDto } from '../dto/get-all-student.dto';
+import { GetAllParentDto } from '../dto/get-all-parent.dto';
+import { GetAllClassDto } from '../dto/get-all-class.dto';
 
 @Injectable()
 export class AdminService {
@@ -80,121 +83,6 @@ export class AdminService {
     try {
       const user = await this.addSingleUser(userDto, i18n);
       return new ApiResponse(user);
-    } catch (error) {
-      console.log('error', error);
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  async addParent(parentDto: AddParentDto, i18n: I18nContext) {
-    try {
-      const { address, ward, district, country, province, job, gender, age, ...userDto } = parentDto;
-
-      const user = await this.addSingleUser(userDto, i18n);
-
-      const parentInstance: any = {
-        address,
-        ward,
-        district,
-        province,
-        country,
-        job,
-        gender,
-        age,
-        userId: user._id,
-      };
-
-      const parent = await this._parentService.create(parentInstance);
-      return new ApiResponse(parent);
-    } catch (error) {
-      console.log('error', error);
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  async addTeacher(teacherDto: AddTeacherDto, i18n: I18nContext) {
-    try {
-      const { address, age, gender, degree, ...userDto } = teacherDto;
-      const user = await this.addSingleUser(userDto, i18n);
-      const teacherInstance: any = {
-        address,
-        age,
-        gender,
-        degree,
-        userId: user._id,
-      };
-      const teacher = await this._teacherService.create(teacherInstance);
-      return new ApiResponse(teacher);
-    } catch (error) {
-      console.log('error', error);
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  async addStudent(studentDto: AddStudentDto, i18n: I18nContext) {
-    try {
-      const { parentId, classId, name } = studentDto;
-      await validateFields({ parentId, classId, name }, `common.required_field`, i18n);
-
-      //Check parent exists
-      const parentExisted = await this._parentService.findOne({ _id: new Types.ObjectId(parentId) });
-      if (!parentExisted || !parentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-      }
-
-      //Check class exists
-      const classExisted = await this._classService.findOne({ _id: new Types.ObjectId(classId) });
-      if (!classExisted || !classExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
-      }
-      const result = await this._studentService.create(studentDto);
-      return new ApiResponse(result);
-    } catch (error) {
-      console.log('error', error);
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  async addClass(classDto: AddClassDto, i18n: I18nContext) {
-    try {
-      const { name } = classDto;
-      await validateFields({ name }, `common.required_field`, i18n);
-
-      //Check class name exists
-      const classExisted = await this._classService.findOne({ name });
-      if (classExisted && classExisted?._id) {
-        throw new HttpException(await i18n.translate('message.existed_class_name'), HttpStatus.CONFLICT);
-      }
-      const result = await this._classService.create(classDto);
-      return new ApiResponse(result);
-    } catch (error) {
-      console.log('error', error);
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  async addSubject(subjectDto: AddSubjectDto, i18n: I18nContext) {
-    try {
-      const { name } = subjectDto;
-      await validateFields({ name }, `common.required_field`, i18n);
-
-      //Check subject name exists
-      const subjectExisted = await this._subjectService.findOne({ name });
-      if (subjectExisted && subjectExisted?._id) {
-        throw new HttpException(await i18n.translate('message.existed_subject_name'), HttpStatus.CONFLICT);
-      }
-      const result = await this._subjectService.create(subjectDto);
-      return new ApiResponse(result);
     } catch (error) {
       console.log('error', error);
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -348,11 +236,16 @@ export class AdminService {
       });
     }
   }
+
   async getAllUser(getAllUserDto: GetAllUserDto, i18n: I18nContext) {
     try {
       const { skip, limit, sort, search } = getAllUserDto;
 
       const result = await this._userService.getUserList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -360,4 +253,285 @@ export class AdminService {
       });
     }
   }
+
+  // Student logic section
+  async addStudent(studentDto: AddStudentDto, i18n: I18nContext) {
+    try {
+      const { parentId, classId, name, age, gender } = studentDto;
+      await validateFields({ parentId, classId, name }, `common.required_field`, i18n);
+
+      //Check parent exists
+      const parentExisted = await this._parentService.findOne({ _id: new Types.ObjectId(parentId) });
+      if (!parentExisted || !parentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+      }
+
+      //Check class exists
+      const classExisted = await this._classService.findOne({ _id: new Types.ObjectId(classId) });
+      if (!classExisted || !classExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      }
+      const studentInstance: any = {
+        name: name.trim(),
+        parentId: new Types.ObjectId(parentId),
+        classId: new Types.ObjectId(classId),
+        age,
+        gender,
+      };
+      const result = await this._studentService.create(studentInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getAllStudent(getAllStudentDto: GetAllStudentDto, i18n: I18nContext) {
+    try {
+      const { skip, limit, sort, search } = getAllStudentDto;
+
+      const result = await this._studentService.getStudentList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getStudentDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const student = await this._studentService.getStudentDetail(id);
+
+      if (!student) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return new ApiResponse(student);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteStudent(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const student = await this._studentService.findOne({ _id: new Types.ObjectId(id) });
+
+      if (!student) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const result = await this._studentService.delete(student._id);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async updateStudent(id: string, studentDto: AddStudentDto, i18n: I18nContext) {
+    try {
+      const { parentId, classId, name, age, gender } = studentDto;
+      await validateFields({ parentId, classId, name }, `common.required_field`, i18n);
+
+      //Check student exists
+      const studentExisted = await this._studentService.findById(id);
+      if (!studentExisted || !studentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+      }
+      //Check parent exists
+      const parentExisted = await this._parentService.findById(parentId);
+      if (!parentExisted || !parentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+      }
+
+      //Check class exists
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted || !classExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      }
+      const studentInstance: any = {
+        name: name.trim(),
+        parentId: new Types.ObjectId(parentId),
+        classId: new Types.ObjectId(classId),
+        age,
+        gender,
+        // age: age ? age : studentExisted?.age,
+        // gender: gender ? gender : studentExisted?.gender,
+      };
+      const result = await this._studentService.update(id, studentInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  // Parent logic section
+  async addParent(parentDto: AddParentDto, i18n: I18nContext) {
+    try {
+      const { address, ward, district, country, province, job, gender, age, ...userDto } = parentDto;
+
+      const user = await this.addSingleUser(userDto, i18n);
+
+      const parentInstance: any = {
+        address,
+        ward,
+        district,
+        province,
+        country,
+        job,
+        gender,
+        age,
+        userId: user._id,
+      };
+
+      const parent = await this._parentService.create(parentInstance);
+      return new ApiResponse(parent);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getAllParent(getAllParentDto: GetAllParentDto, i18n: I18nContext) {
+    try {
+      const { skip, limit, sort, search } = getAllParentDto;
+
+      const result = await this._parentService.getParentList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  // Teacher logic section
+
+  async addTeacher(teacherDto: AddTeacherDto, i18n: I18nContext) {
+    try {
+      const { address, age, gender, degree, ...userDto } = teacherDto;
+      const user = await this.addSingleUser(userDto, i18n);
+      const teacherInstance: any = {
+        address,
+        age,
+        gender,
+        degree,
+        userId: user._id,
+      };
+      const teacher = await this._teacherService.create(teacherInstance);
+      return new ApiResponse(teacher);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  // Class logic section
+  async addClass(classDto: AddClassDto, i18n: I18nContext) {
+    try {
+      const { name } = classDto;
+      await validateFields({ name }, `common.required_field`, i18n);
+
+      //Check class name exists
+      const classExisted = await this._classService.findOne({ name });
+      if (classExisted && classExisted?._id) {
+        throw new HttpException(await i18n.translate('message.existed_class_name'), HttpStatus.CONFLICT);
+      }
+      const result = await this._classService.create(classDto);
+      return new ApiResponse(result);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getAllClass(getAllClassDto: GetAllClassDto, i18n: I18nContext) {
+    try {
+      const { skip, limit, sort, search } = getAllClassDto;
+
+      const result = await this._classService.getClassList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getClassDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const result = this._classService.findById(id);
+
+      if (!result) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  // Subject logic section
+  async addSubject(subjectDto: AddSubjectDto, i18n: I18nContext) {
+    try {
+      const { name } = subjectDto;
+      await validateFields({ name }, `common.required_field`, i18n);
+
+      //Check subject name exists
+      const subjectExisted = await this._subjectService.findOne({ name });
+      if (subjectExisted && subjectExisted?._id) {
+        throw new HttpException(await i18n.translate('message.existed_subject_name'), HttpStatus.CONFLICT);
+      }
+      const result = await this._subjectService.create(subjectDto);
+      return new ApiResponse(result);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  // Teacher assignment logic section
 }

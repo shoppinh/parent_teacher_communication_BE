@@ -14,36 +14,46 @@ export class UserService extends BaseService<User> {
   }
 
   async getUserList(sort: Partial<UserSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.modelUser.aggregate().match({
-      $or: [
-        {
-          username: { $eq: search },
-        },
-        {
-          mobilePhone: { $eq: search },
-        },
-        {
-          email: { $eq: search },
-        },
-      ],
-    });
+    const aggregation = this.modelUser.aggregate();
+    const paginationStage = [];
+    if (search) {
+      aggregation.match({
+        $or: [
+          {
+            username: { $eq: search },
+          },
+          {
+            mobilePhone: { $eq: search },
+          },
+          {
+            email: { $eq: search },
+          },
+        ],
+      });
+    }
+    if (skip) {
+      paginationStage.push({
+        $skip: skip,
+      });
+    }
+    if (limit) {
+      paginationStage.push({
+        $limit: limit,
+      });
+    }
+
     if (sort && !isEmptyObject(sort)) {
       aggregation.sort(sort).collation({ locale: 'en' });
     }
-    return aggregation.facet({
-      totalRecords: [
-        {
-          $count: 'total',
-        },
-      ],
-      data: [
-        {
-          $skip: skip >= 0 ? skip : 0,
-        },
-        {
-          $limit: limit >= 1 ? limit : 1,
-        },
-      ],
-    });
+    return aggregation
+      .facet({
+        totalRecords: [
+          {
+            $count: 'total',
+          },
+        ],
+        data: paginationStage,
+      })
+      .exec();
   }
 }

@@ -4,19 +4,19 @@ import { SortOrderDto } from '../../shared/dto/sort-order.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { IsOptional, IsString } from 'class-validator';
 
-export class UserSortOrder extends SortOrderDto {
+export class TeacherAssignmentSortOrder extends SortOrderDto {
   @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  email: SortOrder;
+  subjectName: SortOrder;
   @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  mobilePhone: SortOrder;
+  className: SortOrder;
   @ApiModelPropertyOptional({ default: 1, description: 'ASC or 1, DESC or -1' })
-  username: SortOrder;
+  teacherName: SortOrder;
 }
 
-export class GetAllUserDto extends PaginationDto {
+export class GetAllTeacherAssignmentDto extends PaginationDto {
   @ApiModelPropertyOptional()
   @IsOptional()
-  sort: Partial<UserSortOrder>;
+  sort: Partial<TeacherAssignmentSortOrder>;
   @ApiModelPropertyOptional()
   @IsString()
   @IsOptional()

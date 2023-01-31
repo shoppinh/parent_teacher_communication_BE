@@ -19,6 +19,7 @@ import { HttpExceptionFilter } from './shared/response/http-exception.filter';
 import { ParentModule } from './parent/parent.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { ClassModule } from './class/class.module';
+import { TeacherAssignmentModule } from './teacher-assignment/teacher-assignment.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { ClassModule } from './class/class.module';
     ParentModule,
     TeacherModule,
     ClassModule,
+    TeacherAssignmentModule,
   ],
   controllers: [AppController],
   providers: [
