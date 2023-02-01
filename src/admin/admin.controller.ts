@@ -65,7 +65,7 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateUser(@Body() userDto: AddUserDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+  async updateUser(@Body() userDto: Partial<AddUserDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     return this._adminService.updateUser(userDto, i18n, id);
   }
 
@@ -103,21 +103,27 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getParentById(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async getParentById(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.getParentDetail(id, i18n);
+  }
 
   @Put('parent/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateParent(@Body() parentDto: AddParentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async updateParent(@Body() parentDto: AddParentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.updateParent(id, parentDto, i18n);
+  }
 
   @Delete('parent/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteParent(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async deleteParent(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.deleteParent(id, i18n);
+  }
 
   // Student Controller Collection
 
@@ -153,7 +159,9 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteStudent(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async deleteStudent(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.deleteStudent(id, i18n);
+  }
 
   @Get('student/:id')
   @ApiBearerAuth()
@@ -198,14 +206,18 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateClass(@Body() classDto: AddClassDto, @I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async updateClass(@Body() classDto: AddClassDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.updateClass(id, classDto, i18n);
+  }
 
   @Delete('class/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteClass(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async deleteClass(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.deleteClass(id, i18n);
+  }
 
   // Teacher Controller Collection
 
@@ -223,28 +235,36 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllTeacher(@Body() getAllTeacherDto: GetAllTeacherDto, @I18n() i18n: I18nContext) {}
+  async getAllTeacher(@Body() getAllTeacherDto: GetAllTeacherDto, @I18n() i18n: I18nContext) {
+    return this._adminService.getAllTeacher(getAllTeacherDto, i18n);
+  }
 
   @Get('teacher/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getTeacherById(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async getTeacherById(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.getTeacherDetail(id, i18n);
+  }
 
   @Put('teacher/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateTeacher(@Body() teacherDto: AddTeacherDto, @I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async updateTeacher(@Body() teacherDto: AddTeacherDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.updateTeacher(id, teacherDto, i18n);
+  }
 
   @Delete('teacher/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteTeacher(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async deleteTeacher(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.deleteTeacher(id, i18n);
+  }
 
   // Subject Controller Collection
 
@@ -262,28 +282,36 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllSubject(@Body() getAllSubjectDto: GetAllSubjectDto, @I18n() i18n: I18nContext) {}
+  async getAllSubject(@Body() getAllSubjectDto: GetAllSubjectDto, @I18n() i18n: I18nContext) {
+    return this._adminService.getAllSubject(getAllSubjectDto, i18n);
+  }
 
   @Get('subject/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getSubjectById(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async getSubjectById(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.getSubjectDetail(id, i18n);
+  }
 
   @Put('subject/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateSubject(@Body() subjectDto: AddSubjectDto, @I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async updateSubject(@Body() subjectDto: Partial<AddSubjectDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.updateSubject(id, subjectDto, i18n);
+  }
 
   @Delete('subject/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteSubject(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async deleteSubject(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.deleteSubject(id, i18n);
+  }
 
   // Teacher Assignment Controller Collection
 
@@ -292,33 +320,43 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async addTeacherAssignment(@Body() teacherAssignmentDto: AddTeacherAssignmentDto, @I18n() i18n: I18nContext) {}
+  async addTeacherAssignment(@Body() teacherAssignmentDto: AddTeacherAssignmentDto, @I18n() i18n: I18nContext) {
+    return this._adminService.addTeacherAssignment(teacherAssignmentDto, i18n);
+  }
 
   @Post('teacher-assignment/list')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllTeacherAssignment(@Body() getAllTeacherAssignmentDto: GetAllTeacherAssignmentDto, @I18n() i18n: I18nContext) {}
+  async getAllTeacherAssignment(@Body() getAllTeacherAssignmentDto: GetAllTeacherAssignmentDto, @I18n() i18n: I18nContext) {
+    return this._adminService.getAllTeacherAssignment(getAllTeacherAssignmentDto, i18n);
+  }
 
   @Get('teacher-assignment/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getTeacherAssignmentById(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async getTeacherAssignmentById(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.getTeacherAssignmentDetail(id, i18n);
+  }
 
   @Put('teacher-assignment/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateTeacherAssignment(@Body() teacherAssignmentDto: AddTeacherAssignmentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async updateTeacherAssignment(@Body() teacherAssignmentDto: Partial<AddTeacherAssignmentDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.updateTeacherAssignment(id, teacherAssignmentDto, i18n);
+  }
 
   @Delete('teacher-assignment/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteTeacherAssignment(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async deleteTeacherAssignment(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    return this._adminService.deleteTeacherAssignment(id, i18n);
+  }
 }

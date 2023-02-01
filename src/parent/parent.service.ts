@@ -59,4 +59,8 @@ export class ParentService extends BaseService<Parent> {
       })
       .exec();
   }
+
+  async getParentDetail(id: string) {
+    return this.model.findById(id).populate('userId').exec();
+  }
 }

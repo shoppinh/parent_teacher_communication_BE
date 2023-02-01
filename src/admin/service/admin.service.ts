@@ -21,6 +21,11 @@ import { GetAllUserDto } from '../dto/get-all-user.dto';
 import { GetAllStudentDto } from '../dto/get-all-student.dto';
 import { GetAllParentDto } from '../dto/get-all-parent.dto';
 import { GetAllClassDto } from '../dto/get-all-class.dto';
+import { GetAllTeacherDto } from '../dto/get-all-teacher.dto';
+import { GetAllSubjectDto } from '../dto/get-all-subject.dto';
+import { AddTeacherAssignmentDto } from '../dto/add-teacher-assignment.dto';
+import { TeacherAssignmentService } from '../../teacher-assignment/teacher-assignment.service';
+import { GetAllTeacherAssignmentDto } from '../dto/get-all-teacher-assignment.dto';
 
 @Injectable()
 export class AdminService {
@@ -32,6 +37,7 @@ export class AdminService {
     private readonly _studentService: StudentService,
     private readonly _teacherService: TeacherService,
     private readonly _subjectService: SubjectService,
+    private readonly _teacherAssignmentService: TeacherAssignmentService,
   ) {}
 
   async addRoles(roles: AddRoleDto[], i18n: I18nContext) {
@@ -138,19 +144,18 @@ export class AdminService {
       password: hashPassword,
     };
 
-    const user = await this._userService.create(userInstance);
-    return user;
+    return await this._userService.create(userInstance);
   }
 
-  async updateUser(userDto: AddUserDto, i18n: I18nContext, id: string) {
+  async updateUser(userDto: Partial<AddUserDto>, i18n: I18nContext, id: string) {
     try {
       const { mobilePhone, username, email, firstName, lastName, isActive, roleKey, password } = userDto;
-      await validateFields({ id, username, mobilePhone, email }, `common.required_field`, i18n);
+      await validateFields({ id }, `common.required_field`, i18n);
 
-      if (!isPhoneNumberValidation(mobilePhone)) {
+      if (mobilePhone && !isPhoneNumberValidation(mobilePhone)) {
         throw new HttpException(await i18n.translate(`user.phone_invalid_field`), HttpStatus.BAD_REQUEST);
       }
-      if (!isValidEmail(email)) {
+      if (email && !isValidEmail(email)) {
         throw new HttpException(await i18n.translate(`user.email_invalid_field`), HttpStatus.BAD_REQUEST);
       }
       //Check Email
@@ -166,16 +171,18 @@ export class AdminService {
       }
 
       //Check if role exists
-      const getAllRole = await this._roleService.getAllRole();
-      const allRoleKeyExist = getAllRole.map((el) => el?.roleKey?.toString().toLocaleUpperCase());
-      const isRoleKeyInAllRole = allRoleKeyExist.includes(roleKey.toLocaleUpperCase());
-      if (!isRoleKeyInAllRole) {
-        throw new HttpException(
-          await i18n.translate(`common.not_found`, {
-            args: { fieldName: 'roleKey' },
-          }),
-          HttpStatus.BAD_REQUEST,
-        );
+      if (roleKey) {
+        const getAllRole = await this._roleService.getAllRole();
+        const allRoleKeyExist = getAllRole.map((el) => el?.roleKey?.toString().toLocaleUpperCase());
+        const isRoleKeyInAllRole = allRoleKeyExist.includes(roleKey.toLocaleUpperCase());
+        if (!isRoleKeyInAllRole) {
+          throw new HttpException(
+            await i18n.translate(`common.not_found`, {
+              args: { fieldName: 'roleKey' },
+            }),
+            HttpStatus.BAD_REQUEST,
+          );
+        }
       }
       //User need to update
       const user = await this._userService.findOne({ _id: new Types.ObjectId(id) });
@@ -191,10 +198,10 @@ export class AdminService {
         mobilePhone: mobilePhone.trim(),
         username: username.trim(),
         email: email.trim(),
-        isActive: isActive ? isActive : user.isActive,
-        firstname: firstName ? firstName : user.firstname,
-        lastname: lastName ? lastName : user.lastname,
-        role: roleKey ? roleKey : user.role,
+        isActive,
+        firstname: firstName,
+        lastname: lastName,
+        role: roleKey,
         password: password ? await passwordGenerate(password) : user.password,
       };
       const result = await this._userService.update(userInstance, user._id);
@@ -210,7 +217,7 @@ export class AdminService {
   async deleteUser(id: string, i18n: I18nContext) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
-      const user = await this._userService.findOne({ _id: new Types.ObjectId(id) });
+      const user = await this._userService.findById(id);
       const parent = await this._parentService.findOne({ userId: new Types.ObjectId(id) });
       const teacher = await this._teacherService.findOne({ userId: new Types.ObjectId(id) });
 
@@ -347,10 +354,10 @@ export class AdminService {
     }
   }
 
-  async updateStudent(id: string, studentDto: AddStudentDto, i18n: I18nContext) {
+  async updateStudent(id: string, studentDto: Partial<AddStudentDto>, i18n: I18nContext) {
     try {
       const { parentId, classId, name, age, gender } = studentDto;
-      await validateFields({ parentId, classId, name }, `common.required_field`, i18n);
+      await validateFields({ id }, `common.required_field`, i18n);
 
       //Check student exists
       const studentExisted = await this._studentService.findById(id);
@@ -358,15 +365,19 @@ export class AdminService {
         throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
       }
       //Check parent exists
-      const parentExisted = await this._parentService.findById(parentId);
-      if (!parentExisted || !parentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+      if (parentId) {
+        const parentExisted = await this._parentService.findById(parentId);
+        if (!parentExisted || !parentExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+        }
       }
 
       //Check class exists
-      const classExisted = await this._classService.findById(classId);
-      if (!classExisted || !classExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      if (classId) {
+        const classExisted = await this._classService.findById(classId);
+        if (!classExisted || !classExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+        }
       }
       const studentInstance: any = {
         name: name.trim(),
@@ -431,6 +442,83 @@ export class AdminService {
     }
   }
 
+  async getParentDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const parent = await this._parentService.getParentDetail(id);
+
+      if (!parent) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return new ApiResponse(parent);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async updateParent(id: string, parentDto: AddParentDto, i18n: I18nContext) {
+    try {
+      const { address, gender, age, job, ward, district, province, country, ...userDto } = parentDto;
+      await validateFields({ id, email: userDto.email }, `common.required_field`, i18n);
+
+      const existedParent = await this._parentService.getParentDetail(id);
+      if (!existedParent || !existedParent?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+      }
+      if (!existedParent.userId || !existedParent.userId?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
+      }
+
+      await this._userService.update(existedParent.userId._id, userDto);
+      const parentInstance: any = {
+        address,
+        ward,
+        district,
+        province,
+        country,
+        job,
+        gender,
+        age,
+        userId: existedParent.userId._id,
+      };
+      const result = await this._parentService.update(id, parentInstance, 'userId');
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteParent(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const parent = await this._parentService.getParentDetail(id);
+      if (!parent || !parent?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+      }
+      if (!parent.userId || !parent.userId?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
+      }
+      await this._userService.delete(parent.userId._id);
+      await this._parentService.delete(id);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
   // Teacher logic section
 
   async addTeacher(teacherDto: AddTeacherDto, i18n: I18nContext) {
@@ -448,6 +536,85 @@ export class AdminService {
       return new ApiResponse(teacher);
     } catch (error) {
       console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getAllTeacher(getAllTeacherDto: GetAllTeacherDto, i18n: I18nContext) {
+    try {
+      const { sort, search, limit, skip } = getAllTeacherDto;
+      const result = await this._teacherService.getTeacherList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getTeacherDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const teacher = await this._teacherService.getTeacherDetail(id);
+      if (!teacher || !teacher?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+      }
+      return new ApiResponse(teacher);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async updateTeacher(id: string, teacherDto: Partial<AddTeacherDto>, i18n: I18nContext) {
+    try {
+      const { address, gender, degree, age, ...userDto } = teacherDto;
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedTeacher = await this._teacherService.getTeacherDetail(id);
+      if (!existedTeacher || !existedTeacher?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+      }
+      if (!existedTeacher.userId || !existedTeacher.userId?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
+      }
+      const teacherInstance: any = {
+        address,
+        gender,
+        degree,
+        age,
+      };
+      await this._userService.update(existedTeacher.userId._id, userDto);
+      const result = await this._teacherService.update(id, teacherInstance, 'userId');
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteTeacher(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const teacher = await this._teacherService.getTeacherDetail(id);
+      if (!teacher || !teacher?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+      }
+      if (!teacher.userId || !teacher.userId?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
+      }
+      await this._userService.delete(teacher.userId._id);
+      await this._teacherService.delete(id);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
       });
@@ -512,6 +679,40 @@ export class AdminService {
     }
   }
 
+  async updateClass(id: string, classDto: Partial<AddClassDto>, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const classExisted = await this._classService.findById(id);
+      if (!classExisted || !classExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      }
+      const result = await this._classService.update(id, classDto);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteClass(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const classExisted = await this._classService.findById(id);
+      if (!classExisted || !classExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      }
+      await this._classService.delete(id);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
   // Subject logic section
   async addSubject(subjectDto: AddSubjectDto, i18n: I18nContext) {
     try {
@@ -533,5 +734,202 @@ export class AdminService {
     }
   }
 
+  async getAllSubject(getAllSubjectDto: GetAllSubjectDto, i18n: I18nContext) {
+    try {
+      const { skip, limit, sort, search } = getAllSubjectDto;
+
+      const result = await this._subjectService.getSubjectList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getSubjectDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const result = this._subjectService.findById(id);
+
+      if (!result) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async updateSubject(id: string, subjectDto: Partial<AddSubjectDto>, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const subjectExisted = await this._subjectService.findById(id);
+      if (!subjectExisted || !subjectExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_subject'), HttpStatus.CONFLICT);
+      }
+      const result = await this._subjectService.update(id, subjectDto);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteSubject(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const subjectExisted = await this._subjectService.findById(id);
+      if (!subjectExisted || !subjectExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_subject'), HttpStatus.CONFLICT);
+      }
+      await this._subjectService.delete(id);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
   // Teacher assignment logic section
+
+  async addTeacherAssignment(teacherAssignmentDto: AddTeacherAssignmentDto, i18n: I18nContext) {
+    try {
+      const { teacherId, classId, subjectId } = teacherAssignmentDto;
+      await validateFields({ teacherId, classId, subjectId }, `common.required_field`, i18n);
+
+      //Check teacher exists
+      const teacherExisted = await this._teacherService.findById(teacherId);
+      if (!teacherExisted || !teacherExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+      }
+
+      //Check class exists
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted || !classExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      }
+
+      //Check subject exists
+      const subjectExisted = await this._subjectService.findById(subjectId);
+      if (!subjectExisted || !subjectExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_subject'), HttpStatus.CONFLICT);
+      }
+
+      const result = await this._teacherAssignmentService.create(teacherAssignmentDto);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getAllTeacherAssignment(getAllTeacherAssignmentDto: GetAllTeacherAssignmentDto, i18n: I18nContext) {
+    try {
+      const { skip, limit, sort, search } = getAllTeacherAssignmentDto;
+
+      const result = await this._teacherAssignmentService.getTeacherAssignmentList(sort, search, limit, skip);
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async getTeacherAssignmentDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const assignment = await this._teacherAssignmentService.getTeacherAssignmentDetail(id);
+
+      if (!assignment) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'id' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return new ApiResponse(assignment);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async updateTeacherAssignment(id: string, teacherAssignmentDto: Partial<AddTeacherAssignmentDto>, i18n: I18nContext) {
+    try {
+      const { teacherId, classId, subjectId } = teacherAssignmentDto;
+      await validateFields({ id }, `common.required_field`, i18n);
+      const assignmentExisted = await this._teacherAssignmentService.findById(id);
+      if (!assignmentExisted || !assignmentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_assignment'), HttpStatus.CONFLICT);
+      }
+      // Check teacher exists
+      if (teacherId) {
+        const teacherExisted = await this._teacherService.findById(teacherId);
+        if (!teacherExisted || !teacherExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+        }
+      }
+
+      // Check class exists
+      if (classId) {
+        const classExisted = await this._classService.findById(classId);
+        if (!classExisted || !classExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+        }
+      }
+
+      // Check subject exists
+
+      if (subjectId) {
+        const subjectExisted = await this._subjectService.findById(subjectId);
+        if (!subjectExisted || !subjectExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_subject'), HttpStatus.CONFLICT);
+        }
+      }
+      const result = await this._teacherAssignmentService.update(id, teacherAssignmentDto);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deleteTeacherAssignment(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const assignmentExisted = await this._teacherAssignmentService.findById(id);
+      if (!assignmentExisted || !assignmentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_assignment'), HttpStatus.CONFLICT);
+      }
+      const result = await this._teacherAssignmentService.delete(id);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
 }

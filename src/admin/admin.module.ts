@@ -10,6 +10,7 @@ import { Student, StudentSchema } from '../parent/schema/student.schema';
 import { TeacherModule } from '../teacher/teacher.module';
 import { SubjectService } from './service/subject.service';
 import { Subject, SubjectSchema } from './schema/subject.schema';
+import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Subject, SubjectSchema } from './schema/subject.schema';
     ParentModule,
     ClassModule,
     TeacherModule,
+    TeacherAssignmentModule,
     MongooseModule.forFeature([
       {
         name: Student.name,
