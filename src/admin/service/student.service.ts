@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { Student, StudentDocument } from '../../parent/schema/student.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { StudentSortOrder } from '../dto/get-all-student.dto';
 import { isEmptyObject } from '../../shared/utils';
 
@@ -14,8 +14,27 @@ export class StudentService extends BaseService<Student> {
   }
 
   async getStudentList(sort: Partial<StudentSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.model.aggregate();
-    const paginationStage = [];
+    const aggregation = this.model
+      .aggregate()
+      .lookup({
+        from: 'parents',
+        localField: 'parentId',
+        foreignField: '_id',
+        as: 'parent',
+      })
+      .unwind('parent')
+      .lookup({
+        from: 'classes',
+        localField: 'classId',
+        foreignField: '_id',
+        as: 'class',
+      })
+      .unwind('class');
+    const paginationStage: PipelineStage.FacetPipelineStage[] = [
+      {
+        $skip: skip ? skip : 0,
+      },
+    ];
     if (search) {
       aggregation.match({
         $or: [
@@ -25,11 +44,7 @@ export class StudentService extends BaseService<Student> {
         ],
       });
     }
-    if (skip) {
-      paginationStage.push({
-        $skip: skip,
-      });
-    }
+
     if (limit) {
       paginationStage.push({
         $limit: limit,
