@@ -17,28 +17,28 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
     const aggregation = this.model
       .aggregate()
       .lookup({
-        from: 'teacher',
+        from: 'teachers',
         localField: 'teacherId',
         foreignField: '_id',
         as: 'teacher',
       })
       .unwind('teacher')
       .lookup({
-        from: 'user',
+        from: 'users',
         localField: 'teacher.userId',
         foreignField: '_id',
         as: 'user',
       })
       .unwind('user')
       .lookup({
-        from: 'class',
+        from: 'classes',
         localField: 'classId',
         foreignField: '_id',
         as: 'class',
       })
       .unwind('class')
       .lookup({
-        from: 'subject',
+        from: 'subjects',
         localField: 'subjectId',
         foreignField: '_id',
         as: 'subject',

@@ -14,7 +14,7 @@ export class UserService extends BaseService<User> {
   }
 
   async getUserList(sort: Partial<UserSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.modelUser.aggregate();
+    const aggregation = this.modelUser.aggregate().project({ password: 0 });
     const paginationStage = [];
     if (search) {
       aggregation.match({
