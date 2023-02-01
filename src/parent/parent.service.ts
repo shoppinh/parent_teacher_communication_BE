@@ -17,7 +17,15 @@ export class ParentService extends BaseService<Parent> {
   }
 
   async getParentList(sort: Partial<ParentSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.model.aggregate();
+    const aggregation = this.model
+      .aggregate()
+      .lookup({
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
+      })
+      .unwind('user');
     const paginationStage = [];
     if (search) {
       aggregation.match({

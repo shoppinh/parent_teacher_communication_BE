@@ -51,6 +51,15 @@ export class AdminController {
     return this._adminService.getAllUser(getAllUserDto, i18n);
   }
 
+  @Get('user/:id')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.SUPER_USER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getUserDetail(@Param('id') id: string, @I18n() i18n: I18nContext) {
+    return this._adminService.getUserDetail(id, i18n);
+  }
+
   @Post('user')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)

@@ -25,7 +25,7 @@ export class User extends BaseSchema {
   mobilePhoneCode: string;
 
   @Exclude()
-  @Prop({ required: false, default: null })
+  @Prop({ required: false, default: null, select: false })
   password?: string;
 
   @Prop({

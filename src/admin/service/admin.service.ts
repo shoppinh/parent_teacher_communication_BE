@@ -147,6 +147,29 @@ export class AdminService {
     return await this._userService.create(userInstance);
   }
 
+  async getUserDetail(id: string, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      //Check if user exists
+      const user = await this._userService.findOne({ _id: new Types.ObjectId(id) }, { password: 0 });
+      if (!user) {
+        throw new HttpException(
+          await i18n.translate(`common.not_found`, {
+            args: { fieldName: 'user' },
+          }),
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return new ApiResponse(user);
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
   async updateUser(userDto: Partial<AddUserDto>, i18n: I18nContext, id: string) {
     try {
       const { mobilePhone, username, email, firstName, lastName, isActive, roleKey, password } = userDto;
@@ -160,13 +183,13 @@ export class AdminService {
       }
       //Check Email
       const userExistedEmail = await this._userService.findOne({ email });
-      if (userExistedEmail && userExistedEmail?._id) {
+      if (userExistedEmail && email !== userExistedEmail.email && userExistedEmail?._id) {
         throw new HttpException(await i18n.translate('message.existed_email'), HttpStatus.CONFLICT);
       }
 
       // Check phone
       const userExistedPhone = await this._userService.findOne({ mobilePhone });
-      if (userExistedPhone && userExistedPhone?._id) {
+      if (userExistedPhone && mobilePhone !== userExistedPhone.mobilePhone && userExistedPhone?._id) {
         throw new HttpException(await i18n.translate('message.existed_phone_number'), HttpStatus.CONFLICT);
       }
 
@@ -195,16 +218,16 @@ export class AdminService {
         );
       }
       const userInstance: any = {
-        mobilePhone: mobilePhone.trim(),
-        username: username.trim(),
-        email: email.trim(),
+        mobilePhone: mobilePhone && mobilePhone.trim(),
+        username: username && username.trim(),
+        email: email && email.trim(),
         isActive,
         firstname: firstName,
         lastname: lastName,
         role: roleKey,
-        password: password ? await passwordGenerate(password) : user.password,
+        password: password && (await passwordGenerate(password)),
       };
-      const result = await this._userService.update(userInstance, user._id);
+      const result = await this._userService.update(id, userInstance);
       return new ApiResponse(result);
     } catch (error) {
       console.log('error', error);
@@ -468,12 +491,21 @@ export class AdminService {
       const { address, gender, age, job, ward, district, province, country, ...userDto } = parentDto;
       await validateFields({ id, email: userDto.email }, `common.required_field`, i18n);
 
-      const existedParent = await this._parentService.getParentDetail(id);
+      const existedParent = await this._parentService.findById(id);
       if (!existedParent || !existedParent?._id) {
         throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
       }
-      if (!existedParent.userId || !existedParent.userId?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
+
+      //Check Email
+      const userExistedEmail = await this._userService.findOne({ email: userDto.email });
+      if (userExistedEmail && userDto.email !== userExistedEmail.email && userExistedEmail?._id) {
+        throw new HttpException(await i18n.translate('message.existed_email'), HttpStatus.CONFLICT);
+      }
+
+      // Check phone
+      const userExistedPhone = await this._userService.findOne({ mobilePhone: userDto.mobilePhone });
+      if (userExistedPhone && userDto.mobilePhone !== userExistedPhone.mobilePhone && userExistedPhone?._id) {
+        throw new HttpException(await i18n.translate('message.existed_phone_number'), HttpStatus.CONFLICT);
       }
 
       await this._userService.update(existedParent.userId._id, userDto);
@@ -500,13 +532,11 @@ export class AdminService {
   async deleteParent(id: string, i18n: I18nContext) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
-      const parent = await this._parentService.getParentDetail(id);
+      const parent = await this._parentService.findById(id);
       if (!parent || !parent?._id) {
         throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
       }
-      if (!parent.userId || !parent.userId?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
-      }
+
       await this._userService.delete(parent.userId._id);
       await this._parentService.delete(id);
       return new ApiResponse({
@@ -576,13 +606,23 @@ export class AdminService {
     try {
       const { address, gender, degree, age, ...userDto } = teacherDto;
       await validateFields({ id }, `common.required_field`, i18n);
-      const existedTeacher = await this._teacherService.getTeacherDetail(id);
+      const existedTeacher = await this._teacherService.findById(id);
       if (!existedTeacher || !existedTeacher?._id) {
         throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
       }
-      if (!existedTeacher.userId || !existedTeacher.userId?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
+
+      //Check Email
+      const userExistedEmail = await this._userService.findOne({ email: teacherDto.email });
+      if (userExistedEmail && teacherDto.email !== userExistedEmail.email && userExistedEmail?._id) {
+        throw new HttpException(await i18n.translate('message.existed_email'), HttpStatus.CONFLICT);
       }
+
+      // Check phone
+      const userExistedPhone = await this._userService.findOne({ mobilePhone: teacherDto.mobilePhone });
+      if (userExistedPhone && teacherDto.mobilePhone !== userExistedPhone.mobilePhone && userExistedPhone?._id) {
+        throw new HttpException(await i18n.translate('message.existed_phone_number'), HttpStatus.CONFLICT);
+      }
+
       const teacherInstance: any = {
         address,
         gender,
@@ -602,13 +642,11 @@ export class AdminService {
   async deleteTeacher(id: string, i18n: I18nContext) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
-      const teacher = await this._teacherService.getTeacherDetail(id);
+      const teacher = await this._teacherService.findById(id);
       if (!teacher || !teacher?._id) {
         throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
       }
-      if (!teacher.userId || !teacher.userId?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_user'), HttpStatus.CONFLICT);
-      }
+
       await this._userService.delete(teacher.userId._id);
       await this._teacherService.delete(id);
       return new ApiResponse({
@@ -830,7 +868,13 @@ export class AdminService {
         throw new HttpException(await i18n.translate('message.nonexistent_subject'), HttpStatus.CONFLICT);
       }
 
-      const result = await this._teacherAssignmentService.create(teacherAssignmentDto);
+      const teacherAssignmentInstance: any = {
+        teacherId: new Types.ObjectId(teacherId),
+        classId: new Types.ObjectId(classId),
+        subjectId: new Types.ObjectId(subjectId),
+      };
+
+      const result = await this._teacherAssignmentService.create(teacherAssignmentInstance);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
