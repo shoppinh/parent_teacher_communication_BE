@@ -1,24 +1,24 @@
 import { BaseSchema } from 'src/shared/schema/base.schema';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { Comment } from './comment.schema';
 import { User } from '../../user/schema/user.schema';
-import { Post } from './post.schema';
 
-export type CommentDocument = Comment & Document;
+export type CommentReactionDocument = CommentReaction & Document;
 
 @Schema({
   toJSON: {
     virtuals: true,
   },
 })
-export class Comment extends BaseSchema {
+export class CommentReaction extends BaseSchema {
+  @Prop({ type: Types.ObjectId, ref: Comment.name, required: true })
+  commentId: Comment;
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
-  authorId: User;
-  @Prop({ type: Types.ObjectId, ref: Post.name, required: true })
-  postId: Post;
+  userId: User;
 
   @Prop({ required: false })
-  content?: string;
+  reaction?: string;
 }
 
-export const CommentSchema = SchemaFactory.createForClass(Comment);
+export const CommentReactionSchema = SchemaFactory.createForClass(CommentReaction);
