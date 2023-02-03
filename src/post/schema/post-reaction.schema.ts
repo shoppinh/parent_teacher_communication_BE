@@ -4,21 +4,21 @@ import { Document, Types } from 'mongoose';
 import { User } from '../../user/schema/user.schema';
 import { Post } from './post.schema';
 
-export type CommentDocument = Comment & Document;
+export type PostReactionDocument = PostReaction & Document;
 
 @Schema({
   toJSON: {
     virtuals: true,
   },
 })
-export class Comment extends BaseSchema {
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
-  authorId: User;
+export class PostReaction extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Post.name, required: true })
   postId: Post;
+  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  userId: User;
 
   @Prop({ required: false })
-  content?: string;
+  reaction?: string;
 }
 
-export const CommentSchema = SchemaFactory.createForClass(Comment);
+export const PostReactionSchema = SchemaFactory.createForClass(PostReaction);

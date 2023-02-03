@@ -7,5 +7,6 @@
   "existed_class_name": "This class name is already registered",
   "internal_server_error": "Internal server error",
   "existed_subject_name": "This subject name is already registered",
-  "nonexistent_subject": "This subject is not registered"
+  "nonexistent_subject": "This subject is not registered",
+  "unauthorized_class": "You are not authorized to access this class"
 }
