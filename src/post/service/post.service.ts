@@ -10,6 +10,9 @@ import { ParentService } from '../../parent/parent.service';
 import { TeacherAssignmentService } from '../../teacher-assignment/teacher-assignment.service';
 import { I18nContext } from 'nestjs-i18n';
 import { ClassService } from '../../class/class.service';
+import { ConstantPostType } from '../../shared/utils/constant/post';
+import { AddPostDto } from '../dto/add-post.dto';
+import { ApiResponse } from '../../shared/response/api-response';
 
 @Injectable()
 export class PostService extends BaseService<Post> {
@@ -30,6 +33,55 @@ export class PostService extends BaseService<Post> {
       foreignField: 'postId',
       as: 'comments',
     });
+    const paginationStage: PipelineStage.FacetPipelineStage[] = [];
+    if (search) {
+      aggregation.match({
+        $or: [
+          {
+            title: { $eq: search },
+          },
+        ],
+      });
+    }
+    if (skip) {
+      paginationStage.push({
+        $skip: skip,
+      });
+    }
+    if (limit) {
+      paginationStage.push({
+        $limit: limit,
+      });
+    }
+    if (sort && !isEmptyObject(sort)) {
+      aggregation.sort(sort).collation({ locale: 'en' });
+    }
+    return aggregation
+      .facet({
+        totalRecords: [
+          {
+            $count: 'total',
+          },
+        ],
+        data: paginationStage,
+      })
+      .exec();
+  }
+
+  // Only for the teacher, superuser
+
+  async getAllPrivatePost(sort: Partial<PostSortOrder>, search: string, limit: number, skip: number) {
+    const aggregation = this.model
+      .aggregate()
+      .lookup({
+        from: 'comments',
+        localField: '_id',
+        foreignField: 'postId',
+        as: 'comments',
+      })
+      .match({
+        type: ConstantPostType.PRIVATE,
+      });
     const paginationStage: PipelineStage.FacetPipelineStage[] = [];
     if (search) {
       aggregation.match({
@@ -94,9 +146,23 @@ export class PostService extends BaseService<Post> {
     }
 
     const paginationStage: PipelineStage.FacetPipelineStage[] = [];
-    const aggregation = this.model.aggregate().match({
-      classId: id,
-    });
+    const aggregation = this.model
+      .aggregate()
+      .match({
+        classId: id,
+      })
+      .lookup({
+        from: 'comments',
+        localField: '_id',
+        foreignField: 'postId',
+        as: 'comments',
+      })
+      .lookup({
+        from: 'postreactions',
+        localField: '_id',
+        foreignField: 'postId',
+        as: 'postReactions',
+      });
     if (search) {
       aggregation.match({
         $or: [
@@ -129,5 +195,79 @@ export class PostService extends BaseService<Post> {
         data: paginationStage,
       })
       .exec();
+  }
+
+  async getPostDetail(id: string, user: User, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedPost = await this.findById(id);
+      if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+
+      return this.model
+        .aggregate()
+        .match({ _id: id })
+        .lookup({
+          from: 'comments',
+          localField: '_id',
+          foreignField: 'postId',
+          as: 'comments',
+        })
+        .lookup({
+          from: 'postreactions',
+          localField: '_id',
+          foreignField: 'postId',
+          as: 'postReactions',
+        })
+        .exec();
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async updatePost(updatePostDto: Partial<AddPostDto>, id: string, user: User, i18n: I18nContext) {
+    try {
+      const { classId } = updatePostDto;
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedPost = await this.findById(id);
+      if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+
+      if (classId) {
+        const classExisted = await this._classService.findById(classId);
+        if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
+      }
+
+      const updatePostInstance: Partial<AddPostDto> = {
+        ...updatePostDto,
+        authorId: user._id,
+      };
+      const result = await this.update(id, updatePostInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  async deletePost(id: string, user: User, i18n: I18nContext) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedPost = await this.findById(id);
+      if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+
+      await this.delete(id);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 }

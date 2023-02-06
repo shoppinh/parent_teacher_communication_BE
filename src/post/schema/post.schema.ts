@@ -21,6 +21,8 @@ export class Post extends BaseSchema {
   title?: string;
   @Prop({ required: false })
   content?: string;
+  @Prop({ required: false })
+  type?: string;
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
