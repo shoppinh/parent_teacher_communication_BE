@@ -20,6 +20,7 @@ import { ParentModule } from './parent/parent.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { ClassModule } from './class/class.module';
 import { TeacherAssignmentModule } from './teacher-assignment/teacher-assignment.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { TeacherAssignmentModule } from './teacher-assignment/teacher-assignment
     TeacherModule,
     ClassModule,
     TeacherAssignmentModule,
+    CommentModule,
   ],
   controllers: [AppController],
   providers: [

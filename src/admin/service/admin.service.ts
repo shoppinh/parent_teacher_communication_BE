@@ -258,8 +258,10 @@ export class AdminService {
       if (teacher) {
         await this._teacherService.delete(teacher._id);
       }
-      const result = await this._userService.delete(user._id);
-      return new ApiResponse(result);
+      await this._userService.delete(user._id);
+      return new ApiResponse({
+        status: true,
+      });
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
@@ -968,8 +970,10 @@ export class AdminService {
       if (!assignmentExisted || !assignmentExisted?._id) {
         throw new HttpException(await i18n.translate('message.nonexistent_assignment'), HttpStatus.CONFLICT);
       }
-      const result = await this._teacherAssignmentService.delete(id);
-      return new ApiResponse(result);
+      await this._teacherAssignmentService.delete(id);
+      return new ApiResponse({
+        status: true,
+      });
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
