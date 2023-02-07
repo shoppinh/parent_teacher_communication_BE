@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { CommentReaction, CommentReactionDocument } from '../schema/comment-reaction.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { AddCommentReactionDto } from '../dto/add-comment-reaction.dto';
 import { User } from '../../user/schema/user.schema';
@@ -26,10 +26,19 @@ export class CommentReactionService extends BaseService<CommentReaction> {
       }
       const reactionExisted = await this.model.findOne({ commentId, userId: user._id });
       if (reactionExisted) {
-        const result = await this.update(reactionExisted._id, addCommentReactionDto);
+        const updateInstance: any = {
+          type,
+          commentId: new Types.ObjectId(commentId),
+        };
+        const result = await this.update(reactionExisted._id, updateInstance);
         return new ApiResponse(result);
       }
-      const result = await this.create({ ...addCommentReactionDto, userId: user._id });
+      const createInstance: any = {
+        userId: user._id,
+        type,
+        commentId: new Types.ObjectId(commentId),
+      };
+      const result = await this.create(createInstance);
 
       return new ApiResponse(result);
     } catch (error) {

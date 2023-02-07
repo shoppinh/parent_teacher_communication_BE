@@ -19,14 +19,14 @@ export class CommentService extends BaseService<Comment> {
 
   async addComment(addCommentDto: AddCommentDto, user: User, i18n: I18nContext) {
     try {
-      const { postId } = addCommentDto;
+      const { postId, content } = addCommentDto;
       await validateFields({ postId }, `common.required_field`, i18n);
       const postExisted = await this._postService.findById(postId);
       if (!postExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.NOT_FOUND);
       }
       const commentInstance: any = {
-        ...addCommentDto,
+        content,
         userId: user._id,
         postId: new Types.ObjectId(postId),
       };
@@ -41,7 +41,7 @@ export class CommentService extends BaseService<Comment> {
 
   async updateComment(updateCommentDto: Partial<AddCommentDto>, user, i18n, id) {
     try {
-      const { postId } = updateCommentDto;
+      const { postId, content } = updateCommentDto;
       await validateFields({ id }, `common.required_field`, i18n);
       if (postId) {
         const postExisted = await this._postService.findById(postId);
@@ -55,7 +55,7 @@ export class CommentService extends BaseService<Comment> {
       if (existedComment.userId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
       const updateCommentInstance: any = {
-        ...updateCommentDto,
+        content,
         userId: user._id,
         postId: new Types.ObjectId(postId),
       };
