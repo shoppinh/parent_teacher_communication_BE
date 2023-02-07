@@ -66,6 +66,6 @@ export class TeacherService extends BaseService<Teacher> {
   }
 
   async getTeacherDetail(id: string) {
-    return this.model.findById(id).populate('userId').exec();
+    return this.model.findById(id).exec();
   }
 }
