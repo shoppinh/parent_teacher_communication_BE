@@ -11,10 +11,5 @@ export class AddCommentDto extends BaseDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  userId: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   content: string;
 }

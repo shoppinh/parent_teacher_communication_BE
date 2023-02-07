@@ -1,17 +1,18 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { PostReaction, PostReactionDocument } from '../schema/post-reaction.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { AddPostReactionDto } from '../dto/add-post-reaction.dto';
 import { I18nContext } from 'nestjs-i18n';
 import { User } from '../../user/schema/user.schema';
 import { validateFields } from '../../shared/utils';
 import { ApiResponse } from '../../shared/response/api-response';
+import { PostService } from './post.service';
 
 @Injectable()
 export class PostReactionService extends BaseService<PostReaction> {
-  constructor(@InjectModel(PostReaction.name) private readonly postReactionModel: Model<PostReactionDocument>) {
+  constructor(@InjectModel(PostReaction.name) private readonly postReactionModel: Model<PostReactionDocument>, private readonly _postService: PostService) {
     super();
     this.model = postReactionModel;
   }
@@ -20,16 +21,19 @@ export class PostReactionService extends BaseService<PostReaction> {
     try {
       const { postId, type } = addPostReactionDto;
       await validateFields({ postId, type }, `common.required_field`, i18n);
-      const postExisted = await this.findById(postId);
+      const postExisted = await this._postService.findById(postId);
       if (!postExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.NOT_FOUND);
       }
-      const reactionExisted = await this.model.findOne({ postId, userId: user._id });
+      const reactionExisted = await this.findOne({ postId, userId: user._id });
       if (reactionExisted) {
-        const result = await this.update(reactionExisted._id, addPostReactionDto);
+        const result = await this.update(reactionExisted._id, {
+          ...addPostReactionDto,
+          postId: new Types.ObjectId(postId),
+        });
         return new ApiResponse(result);
       }
-      const result = await this.create({ ...addPostReactionDto, userId: user._id });
+      const result = await this.create({ ...addPostReactionDto, userId: user._id, postId: new Types.ObjectId(postId) });
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -37,6 +41,7 @@ export class PostReactionService extends BaseService<PostReaction> {
       });
     }
   }
+
   async deletePostReaction(id: string, user: User, i18n: I18nContext) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);

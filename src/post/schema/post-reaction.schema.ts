@@ -17,8 +17,8 @@ export class PostReaction extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   userId: User;
 
-  @Prop({ required: false })
-  reaction?: string;
+  @Prop({ required: true })
+  type: string;
 }
 
 export const PostReactionSchema = SchemaFactory.createForClass(PostReaction);
