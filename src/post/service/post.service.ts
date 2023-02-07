@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { Post, PostDocument } from '../schema/post.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, PipelineStage } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { GetAllPostDto, PostSortOrder } from '../dto/get-all-post.dto';
 import { isEmptyObject, validateFields } from '../../shared/utils';
 import { User } from '../../user/schema/user.schema';
@@ -273,7 +273,8 @@ export class PostService extends BaseService<Post> {
           localField: '_id',
           foreignField: 'postId',
           as: 'postReactions',
-        }).project({
+        })
+        .project({
           __v: 0,
           comments: {
             _id: 0,
@@ -294,9 +295,31 @@ export class PostService extends BaseService<Post> {
     }
   }
 
+  async addPost(addPostDto: AddPostDto, user: User, i18n: I18nContext) {
+    try {
+      const { classId, title, description, type } = addPostDto;
+      await validateFields({ classId, title }, `common.required_field`, i18n);
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
+      const postInstance: any = {
+        title,
+        description,
+        type,
+        authorId: user._id,
+        classId: new Types.ObjectId(classId),
+      };
+      const result = await this.create(postInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
   async updatePost(updatePostDto: Partial<AddPostDto>, id: string, user: User, i18n: I18nContext) {
     try {
-      const { classId } = updatePostDto;
+      const { classId, title, type, description } = updatePostDto;
       await validateFields({ id }, `common.required_field`, i18n);
       const existedPost = await this.findById(id);
       if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
@@ -308,8 +331,11 @@ export class PostService extends BaseService<Post> {
       }
 
       const updatePostInstance: any = {
-        ...updatePostDto,
+        title,
+        type,
+        description,
         authorId: user._id,
+        classId: new Types.ObjectId(classId),
       };
       const result = await this.update(id, updatePostInstance);
       return new ApiResponse(result);

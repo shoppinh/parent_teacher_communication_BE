@@ -99,22 +99,7 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async addPost(@Body() addPostDto: AddPostDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
-    try {
-      const { classId, title } = addPostDto;
-      await validateFields({ classId, title }, `common.required_field`, i18n);
-      const classExisted = await this._classService.findById(classId);
-      if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
-      const postInstance: any = {
-        ...addPostDto,
-        authorId: user._id,
-      };
-      const result = await this._postService.create(postInstance);
-      return new ApiResponse(result);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
+    return this._postService.addPost(addPostDto, user, i18n);
   }
 
   @Put(':id')

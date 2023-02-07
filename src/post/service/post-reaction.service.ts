@@ -28,7 +28,7 @@ export class PostReactionService extends BaseService<PostReaction> {
       const reactionExisted = await this.findOne({ postId, userId: user._id });
       if (reactionExisted) {
         const result = await this.update(reactionExisted._id, {
-          ...addPostReactionDto,
+          type,
           postId: new Types.ObjectId(postId),
         });
         return new ApiResponse(result);
