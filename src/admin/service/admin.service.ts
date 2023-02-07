@@ -438,7 +438,7 @@ export class AdminService {
         job,
         gender,
         age,
-        userId: user._id,
+        userId: user,
       };
 
       const parent = await this._parentService.create(parentInstance);
@@ -562,7 +562,7 @@ export class AdminService {
         age,
         gender,
         degree,
-        userId: user._id,
+        userId: user,
       };
       const teacher = await this._teacherService.create(teacherInstance);
       return new ApiResponse(teacher);
