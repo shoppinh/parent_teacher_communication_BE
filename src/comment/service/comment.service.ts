@@ -1,7 +1,7 @@
 import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { Comment, CommentDocument } from '../schema/comment.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { I18nContext } from 'nestjs-i18n';
 import { AddCommentDto } from '../dto/add-comment.dto';
@@ -28,6 +28,7 @@ export class CommentService extends BaseService<Comment> {
       const commentInstance: any = {
         ...addCommentDto,
         userId: user._id,
+        postId: new Types.ObjectId(postId),
       };
       const result = await this.create(commentInstance);
       return new ApiResponse(result);
@@ -53,9 +54,10 @@ export class CommentService extends BaseService<Comment> {
 
       if (existedComment.userId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
-      const updateCommentInstance: Partial<AddCommentDto> = {
+      const updateCommentInstance: any = {
         ...updateCommentDto,
         userId: user._id,
+        postId: new Types.ObjectId(postId),
       };
       const result = await this.update(id, updateCommentInstance);
       return new ApiResponse(result);

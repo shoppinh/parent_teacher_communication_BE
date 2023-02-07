@@ -27,12 +27,33 @@ export class PostService extends BaseService<Post> {
   }
 
   async getAllPost(sort: Partial<PostSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.model.aggregate().lookup({
-      from: 'comments',
-      localField: '_id',
-      foreignField: 'postId',
-      as: 'comments',
-    });
+    const aggregation = this.model
+      .aggregate()
+      .lookup({
+        from: 'comments',
+        localField: '_id',
+        foreignField: 'postId',
+        as: 'comments',
+      })
+      .lookup({
+        from: 'postreactions',
+        localField: '_id',
+        foreignField: 'postId',
+        as: 'reactions',
+      })
+      .project({
+        __v: 0,
+        comments: {
+          _id: 0,
+          __v: 0,
+          postId: 0,
+        },
+        reactions: {
+          _id: 0,
+          __v: 0,
+          postId: 0,
+        },
+      });
     const paginationStage: PipelineStage.FacetPipelineStage[] = [];
     if (search) {
       aggregation.match({
@@ -57,6 +78,7 @@ export class PostService extends BaseService<Post> {
       aggregation.sort(sort).collation({ locale: 'en' });
     }
     return aggregation
+
       .facet({
         totalRecords: [
           {
@@ -73,15 +95,35 @@ export class PostService extends BaseService<Post> {
   async getAllPrivatePost(sort: Partial<PostSortOrder>, search: string, limit: number, skip: number) {
     const aggregation = this.model
       .aggregate()
+      .match({
+        type: ConstantPostType.PRIVATE,
+      })
       .lookup({
         from: 'comments',
         localField: '_id',
         foreignField: 'postId',
         as: 'comments',
       })
-      .match({
-        type: ConstantPostType.PRIVATE,
+      .lookup({
+        from: 'postreactions',
+        localField: '_id',
+        foreignField: 'postId',
+        as: 'postReactions',
+      })
+      .project({
+        __v: 0,
+        comments: {
+          _id: 0,
+          __v: 0,
+          postId: 0,
+        },
+        reactions: {
+          _id: 0,
+          __v: 0,
+          postId: 0,
+        },
       });
+
     const paginationStage: PipelineStage.FacetPipelineStage[] = [];
     if (search) {
       aggregation.match({
@@ -162,6 +204,19 @@ export class PostService extends BaseService<Post> {
         localField: '_id',
         foreignField: 'postId',
         as: 'postReactions',
+      })
+      .project({
+        __v: 0,
+        comments: {
+          _id: 0,
+          __v: 0,
+          postId: 0,
+        },
+        reactions: {
+          _id: 0,
+          __v: 0,
+          postId: 0,
+        },
       });
     if (search) {
       aggregation.match({
@@ -218,6 +273,18 @@ export class PostService extends BaseService<Post> {
           localField: '_id',
           foreignField: 'postId',
           as: 'postReactions',
+        }).project({
+          __v: 0,
+          comments: {
+            _id: 0,
+            __v: 0,
+            postId: 0,
+          },
+          reactions: {
+            _id: 0,
+            __v: 0,
+            postId: 0,
+          },
         })
         .exec();
     } catch (error) {
@@ -240,7 +307,7 @@ export class PostService extends BaseService<Post> {
         if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
       }
 
-      const updatePostInstance: Partial<AddPostDto> = {
+      const updatePostInstance: any = {
         ...updatePostDto,
         authorId: user._id,
       };

@@ -1,16 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Put,
-  UseGuards
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { CommentService } from '../comment/service/comment.service';
 import { CommentReactionService } from '../comment/service/comment-reaction.service';
 import { PostService } from './service/post.service';
@@ -43,8 +31,7 @@ export class PostController {
     private readonly _postService: PostService,
     private readonly _postReactionService: PostReactionService,
     private readonly _classService: ClassService,
-  ) {
-  }
+  ) {}
 
   @Post('list')
   @ApiBearerAuth()
@@ -117,7 +104,7 @@ export class PostController {
       await validateFields({ classId, title }, `common.required_field`, i18n);
       const classExisted = await this._classService.findById(classId);
       if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
-      const postInstance: AddPostDto = {
+      const postInstance: any = {
         ...addPostDto,
         authorId: user._id,
       };
@@ -159,7 +146,7 @@ export class PostController {
 
   @Post('reaction')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER)
+  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async reactPost(@Body() addPostReactionDto: AddPostReactionDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
@@ -168,7 +155,7 @@ export class PostController {
 
   @Delete('reaction/:postId')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER)
+  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async deletePostReaction(@I18n() i18n: I18nContext, @Param('postId') id: string, @GetUser() user: User) {

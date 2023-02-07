@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, HttpCode, HttpStatus, Inject, Param, Post, Put } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Inject, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../shared/decorator/roles.decorator';
 import { ConstantRoles } from '../shared/utils/constant/role';
 import { ApiException } from '../shared/type/api-exception.model';
@@ -10,12 +10,18 @@ import { User } from '../user/schema/user.schema';
 import { AddCommentReactionDto } from './dto/add-comment-reaction.dto';
 import { CommentService } from './service/comment.service';
 import { CommentReactionService } from './service/comment-reaction.service';
+import { JwtGuard } from '../auth/guard/jwt-auth.guard';
+import { RolesGuard } from '../auth/guard/role.guard';
 
-@Controller('comment')
+@ApiTags('Comment')
+@ApiHeader({ name: 'locale', description: 'en' })
+@ApiHeader({ name: 'version', description: '1' })
+@Controller('api/comment')
+@UseGuards(JwtGuard, RolesGuard)
 export class CommentController {
   constructor(private readonly _commentService: CommentService, private readonly _commentReactionService: CommentReactionService) {}
 
-  @Post('')
+  @Post('add-comment')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER, ConstantRoles.TEACHER, ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })

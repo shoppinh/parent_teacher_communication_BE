@@ -22,11 +22,6 @@ export class AddPostDto extends BaseDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  authorId: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   @IsIn([ConstantPostType.PUBLIC, ConstantPostType.PRIVATE])
   type: string;
 }
