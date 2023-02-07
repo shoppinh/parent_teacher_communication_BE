@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Inject, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  UseGuards
+} from '@nestjs/common';
 import { CommentService } from '../comment/service/comment.service';
 import { CommentReactionService } from '../comment/service/comment-reaction.service';
 import { PostService } from './service/post.service';
@@ -30,8 +42,9 @@ export class PostController {
     private readonly _commentReactionService: CommentReactionService,
     private readonly _postService: PostService,
     private readonly _postReactionService: PostReactionService,
-    @Inject(() => ClassService) private readonly _classService: ClassService,
-  ) {}
+    private readonly _classService: ClassService,
+  ) {
+  }
 
   @Post('list')
   @ApiBearerAuth()

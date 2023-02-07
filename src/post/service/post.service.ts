@@ -1,4 +1,4 @@
-import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { Post, PostDocument } from '../schema/post.schema';
 import { InjectModel } from '@nestjs/mongoose';
@@ -18,9 +18,9 @@ import { ApiResponse } from '../../shared/response/api-response';
 export class PostService extends BaseService<Post> {
   constructor(
     @InjectModel(Post.name) private readonly postModel: Model<PostDocument>,
-    @Inject(forwardRef(() => ParentService)) private readonly _parentService: ParentService,
-    @Inject(forwardRef(() => ClassService)) private readonly _classService: ClassService,
-    @Inject(forwardRef(() => TeacherAssignmentService)) private readonly _teacherAssignmentService: TeacherAssignmentService,
+    private readonly _parentService: ParentService,
+    private readonly _classService: ClassService,
+    private readonly _teacherAssignmentService: TeacherAssignmentService,
   ) {
     super();
     this.model = postModel;

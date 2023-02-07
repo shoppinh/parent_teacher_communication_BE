@@ -5,6 +5,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PostReaction, PostReactionSchema } from './schema/post-reaction.schema';
 import { Post, PostSchema } from './schema/post.schema';
 import { PostReactionService } from './service/post-reaction.service';
+import { ParentModule } from '../parent/parent.module';
+import { ClassModule } from '../class/class.module';
+import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
+import { CommentModule } from '../comment/comment.module';
 
 @Module({
   providers: [PostService, PostReactionService],
@@ -22,6 +26,10 @@ import { PostReactionService } from './service/post-reaction.service';
         schema: PostReactionSchema,
       },
     ]),
+    ParentModule,
+    ClassModule,
+    TeacherAssignmentModule,
+    CommentModule,
   ],
 })
 export class PostModule {}
