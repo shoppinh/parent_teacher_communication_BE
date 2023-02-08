@@ -13,6 +13,8 @@ import { ClassService } from '../../class/class.service';
 import { ConstantPostType } from '../../shared/utils/constant/post';
 import { AddPostDto } from '../dto/add-post.dto';
 import { ApiResponse } from '../../shared/response/api-response';
+import { CommentService } from '../../comment/service/comment.service';
+import { PostReactionService } from './post-reaction.service';
 
 @Injectable()
 export class PostService extends BaseService<Post> {
@@ -21,6 +23,8 @@ export class PostService extends BaseService<Post> {
     private readonly _parentService: ParentService,
     private readonly _classService: ClassService,
     private readonly _teacherAssignmentService: TeacherAssignmentService,
+    private readonly _commentService: CommentService,
+    private readonly _postReactionService: PostReactionService,
   ) {
     super();
     this.model = postModel;
@@ -174,13 +178,13 @@ export class PostService extends BaseService<Post> {
       .createParentUserRelationAggregation()
       .lookup({
         from: 'students',
-        localField: 'childrenId',
-        foreignField: '_id',
+        localField: '_id',
+        foreignField: 'parentId',
         as: 'children',
       })
       .unwind('children')
       .match({
-        'children.classId': id,
+        'children.classId': new Types.ObjectId(id),
       })
       .exec();
     if (!childrenList.length) {
@@ -191,7 +195,7 @@ export class PostService extends BaseService<Post> {
     const aggregation = this.model
       .aggregate()
       .match({
-        classId: id,
+        classId: new Types.ObjectId(id),
       })
       .lookup({
         from: 'comments',
@@ -203,7 +207,7 @@ export class PostService extends BaseService<Post> {
         from: 'postreactions',
         localField: '_id',
         foreignField: 'postId',
-        as: 'postReactions',
+        as: 'reactions',
       })
       .project({
         __v: 0,
@@ -261,7 +265,7 @@ export class PostService extends BaseService<Post> {
 
       return this.model
         .aggregate()
-        .match({ _id: id })
+        .match({ _id: new Types.ObjectId(id) })
         .lookup({
           from: 'comments',
           localField: '_id',
@@ -272,7 +276,7 @@ export class PostService extends BaseService<Post> {
           from: 'postreactions',
           localField: '_id',
           foreignField: 'postId',
-          as: 'postReactions',
+          as: 'reactions',
         })
         .project({
           __v: 0,
@@ -297,7 +301,7 @@ export class PostService extends BaseService<Post> {
 
   async addPost(addPostDto: AddPostDto, user: User, i18n: I18nContext) {
     try {
-      const { classId, title, description, type } = addPostDto;
+      const { classId, title, description, type, content, coverImg } = addPostDto;
       await validateFields({ classId, title }, `common.required_field`, i18n);
       const classExisted = await this._classService.findById(classId);
       if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
@@ -305,6 +309,8 @@ export class PostService extends BaseService<Post> {
         title,
         description,
         type,
+        content,
+        coverImg,
         authorId: user._id,
         classId: new Types.ObjectId(classId),
       };
@@ -319,7 +325,7 @@ export class PostService extends BaseService<Post> {
 
   async updatePost(updatePostDto: Partial<AddPostDto>, id: string, user: User, i18n: I18nContext) {
     try {
-      const { classId, title, type, description } = updatePostDto;
+      const { classId, title, type, description, content, coverImg } = updatePostDto;
       await validateFields({ id }, `common.required_field`, i18n);
       const existedPost = await this.findById(id);
       if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
@@ -334,6 +340,8 @@ export class PostService extends BaseService<Post> {
         title,
         type,
         description,
+        content,
+        coverImg,
         authorId: user._id,
         classId: new Types.ObjectId(classId),
       };
@@ -354,6 +362,8 @@ export class PostService extends BaseService<Post> {
       if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
       await this.delete(id);
+      await this._commentService.deleteByCondition({ postId: id });
+      await this._postReactionService.deleteByCondition({ postId: id });
       return new ApiResponse({
         status: true,
       });

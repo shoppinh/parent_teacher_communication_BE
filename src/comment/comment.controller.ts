@@ -44,8 +44,8 @@ export class CommentController {
   @Roles(ConstantRoles.SUPER_USER, ConstantRoles.TEACHER, ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async deleteComment(@I18n() i18n: I18nContext, @GetUser() user: User, @Param('id') id: string) {
-    return this._commentService.deleteComment(user, i18n, id);
+  async deleteComment(@I18n() i18n: I18nContext,@Param('id') id: string) {
+    return this._commentService.deleteComment(i18n, id);
   }
 
   @Post('reaction')
