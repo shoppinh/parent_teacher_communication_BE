@@ -9,10 +9,15 @@ import { User } from '../../user/schema/user.schema';
 import { PostService } from '../../post/service/post.service';
 import { ApiResponse } from '../../shared/response/api-response';
 import { validateFields } from '../../shared/utils';
+import { CommentReactionService } from './comment-reaction.service';
 
 @Injectable()
 export class CommentService extends BaseService<Comment> {
-  constructor(@InjectModel(Comment.name) private readonly commentModel: Model<CommentDocument>, @Inject(forwardRef(() => PostService)) private readonly _postService: PostService) {
+  constructor(
+    @InjectModel(Comment.name) private readonly commentModel: Model<CommentDocument>,
+    private readonly _commentReactionService: CommentReactionService,
+    @Inject(forwardRef(() => PostService)) private readonly _postService: PostService,
+  ) {
     super();
     this.model = commentModel;
   }
@@ -68,15 +73,15 @@ export class CommentService extends BaseService<Comment> {
     }
   }
 
-  async deleteComment(user: User, i18n: I18nContext, id: string) {
+  async deleteComment(i18n: I18nContext, id: string) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
       const existedComment = await this.findById(id);
       if (!existedComment) throw new HttpException(await i18n.translate(`message.nonexistent_comment`), HttpStatus.BAD_REQUEST);
 
-      if (existedComment.userId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
-
       await this.delete(id);
+      await this._commentReactionService.deleteByCondition({ postId: id });
+
       return new ApiResponse({
         status: true,
       });
@@ -86,4 +91,7 @@ export class CommentService extends BaseService<Comment> {
       });
     }
   }
+
+  // TODO: React to comment
+  // TODO: Remove react to comment
 }

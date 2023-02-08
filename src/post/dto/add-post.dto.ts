@@ -13,6 +13,14 @@ export class AddPostDto extends BaseDto {
   @IsOptional()
   @IsString()
   description: string;
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  content: string;
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  coverImg: string;
 
   @ApiProperty()
   @IsNotEmpty()
