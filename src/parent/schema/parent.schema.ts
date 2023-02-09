@@ -11,7 +11,7 @@ export type ParentDocument = Parent & Document;
   },
 })
 export class Parent extends BaseSchema {
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  @Prop({ required: true })
   userId: User;
   @Prop({ required: true })
   address: string;

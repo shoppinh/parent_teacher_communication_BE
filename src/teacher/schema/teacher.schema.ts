@@ -11,7 +11,7 @@ export type TeacherDocument = Teacher & Document;
   },
 })
 export class Teacher extends BaseSchema {
-  @Prop({ type: Types.ObjectId, ref: User.name, default: null })
+  @Prop({ default: null })
   userId: User;
   @Prop({ required: true })
   address: string;

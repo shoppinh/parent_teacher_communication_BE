@@ -16,19 +16,23 @@ export class ParentService extends BaseService<Parent> {
     this.model = _parentDocumentModel;
   }
 
-  createParentUserRelationAggregation() {
+  createParentStudentRelationAggregation() {
     return this.model
       .aggregate()
-      .lookup({
-        from: 'users',
-        localField: 'userId',
-        foreignField: '_id',
-        as: 'user',
+      .project({
+        'userId.password': 0,
       })
-      .unwind('user');
+      .lookup({
+        from: 'students',
+        localField: '_id',
+        foreignField: 'parentId',
+        as: 'children',
+      })
+      .unwind('children');
   }
+
   async getParentList(sort: Partial<ParentSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.createParentUserRelationAggregation();
+    const aggregation = this.createParentStudentRelationAggregation();
     const paginationStage = [];
     if (search) {
       aggregation.match({
@@ -70,13 +74,8 @@ export class ParentService extends BaseService<Parent> {
       })
       .exec();
   }
-
-  async getParentDetail(id: string) {
-    return this.model.findById(id).exec();
-  }
-
   async getAllChildrenOfParent(id: string) {
-    const aggregation = this.createParentUserRelationAggregation();
+    const aggregation = this.createParentStudentRelationAggregation();
     return aggregation
       .match({ parentId: id })
       .lookup({
