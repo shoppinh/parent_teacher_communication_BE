@@ -14,15 +14,10 @@ export class TeacherService extends BaseService<Teacher> {
   }
 
   async getTeacherList(sort: Partial<TeacherSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.model
-      .aggregate()
-      .lookup({
-        from: 'users',
-        localField: 'userId',
-        foreignField: '_id',
-        as: 'user',
-      })
-      .unwind('user');
+    const aggregation = this.model.aggregate().project({
+      'userId.password': 0,
+    });
+
     const paginationStage = [];
     if (search) {
       aggregation.match({
@@ -63,9 +58,5 @@ export class TeacherService extends BaseService<Teacher> {
         data: paginationStage,
       })
       .exec();
-  }
-
-  async getTeacherDetail(id: string) {
-    return this.model.findById(id).exec();
   }
 }

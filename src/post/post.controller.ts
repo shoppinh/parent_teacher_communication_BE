@@ -18,6 +18,8 @@ import { User } from '../user/schema/user.schema';
 import { AddPostDto } from './dto/add-post.dto';
 import { ClassService } from '../class/class.service';
 import { AddPostReactionDto } from './dto/add-post-reaction.dto';
+import { Types } from 'mongoose';
+import { ParentService } from '../parent/parent.service';
 
 @ApiTags('Post')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -31,6 +33,7 @@ export class PostController {
     private readonly _postService: PostService,
     private readonly _postReactionService: PostReactionService,
     private readonly _classService: ClassService,
+    private readonly _parentService: ParentService,
   ) {}
 
   @Post('list')
@@ -80,8 +83,23 @@ export class PostController {
   @HttpCode(HttpStatus.OK)
   async getAllPostByClass(@Body() getAllPostDto: GetAllPostDto, @I18n() i18n: I18nContext, @GetUser() user: User, @Param('classId') classId: string) {
     try {
-      const result = await this._postService.getAllPostByClass(user, getAllPostDto, classId, i18n);
       await validateFields({ classId }, `common.required_field`, i18n);
+      // Check if class existed
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted) {
+        throw new HttpException(i18n.translate('message.nonexistent_class'), HttpStatus.NOT_FOUND);
+      }
+      // Find if user(parent) has right to access the class
+      const childrenList = await this._parentService
+        .createParentStudentRelationAggregation()
+        .match({
+          'children.classId': new Types.ObjectId(classId),
+        })
+        .exec();
+      if (!childrenList.length) {
+        throw new HttpException(i18n.translate('message.parent_has_no_right_to_access_class'), HttpStatus.FORBIDDEN);
+      }
+      const result = await this._postService.getAllPostByClass(user, getAllPostDto, classId);
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
@@ -99,7 +117,27 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async addPost(@Body() addPostDto: AddPostDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
-    return this._postService.addPost(addPostDto, user, i18n);
+    try {
+      const { classId, title, description, type, content, coverImg } = addPostDto;
+      await validateFields({ classId, title }, `common.required_field`, i18n);
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
+      const postInstance: any = {
+        title,
+        description,
+        type,
+        content,
+        coverImg,
+        authorId: user._id,
+        classId: new Types.ObjectId(classId),
+      };
+      const result = await this._postService.create(postInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
   @Put(':id')
@@ -108,7 +146,34 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async updatePost(@Body() updatePostDto: Partial<AddPostDto>, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
-    return this._postService.updatePost(updatePostDto, id, user, i18n);
+    try {
+      const { classId, title, type, description, content, coverImg } = updatePostDto;
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedPost = await this._postService.findById(id);
+      if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+
+      if (classId) {
+        const classExisted = await this._classService.findById(classId);
+        if (!classExisted) throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.BAD_REQUEST);
+      }
+
+      const updatePostInstance: any = {
+        title,
+        type,
+        description,
+        content,
+        coverImg,
+        authorId: user._id,
+        classId: new Types.ObjectId(classId),
+      };
+      const result = await this._postService.update(id, updatePostInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
   @Get(':id')
@@ -117,6 +182,10 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getPostDetail(@I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
+    await validateFields({ id }, `common.required_field`, i18n);
+    const existedPost = await this._postService.findById(id);
+    if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
+    if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
     return this._postService.getPostDetail(id, user, i18n);
   }
 
@@ -126,7 +195,23 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async deletePost(@I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
-    return this._postService.deletePost(id, user, i18n);
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedPost = await this._postService.findById(id);
+      if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+
+      await this._postService.delete(id);
+      await this._commentService.deleteByCondition({ postId: id });
+      await this._postReactionService.deleteByCondition({ postId: id });
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
   @Post('reaction')
@@ -135,7 +220,29 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async reactPost(@Body() addPostReactionDto: AddPostReactionDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
-    return this._postReactionService.reactPost(addPostReactionDto, user, i18n);
+    try {
+      const { postId, type } = addPostReactionDto;
+      await validateFields({ postId, type }, `common.required_field`, i18n);
+      const postExisted = await this._postService.findById(postId);
+      if (!postExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.NOT_FOUND);
+      }
+      const reactionExisted = await this._postReactionService.findOne({ postId, userId: user._id });
+      if (reactionExisted) {
+        const result = await this._postReactionService.update(reactionExisted._id, {
+          type,
+          postId: new Types.ObjectId(postId),
+        });
+        return new ApiResponse(result);
+      }
+
+      const result = await this._postReactionService.create({ type, userId: user._id, postId: new Types.ObjectId(postId) });
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
   @Delete('reaction/:postId')
@@ -144,6 +251,18 @@ export class PostController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async deletePostReaction(@I18n() i18n: I18nContext, @Param('postId') id: string, @GetUser() user: User) {
-    return this._postReactionService.deletePostReaction(id, user, i18n);
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const existedPostReaction = await this._postReactionService.findOne({ postId: id, userId: user._id });
+      if (!existedPostReaction) throw new HttpException(await i18n.translate(`message.nonexistent_post_reaction`), HttpStatus.NOT_FOUND);
+      await this._postReactionService.delete(existedPostReaction._id);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 }
