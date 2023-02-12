@@ -16,6 +16,7 @@ import { ClassService } from '../class/class.service';
 import { ApiResponse } from '../shared/response/api-response';
 import { ProgressTrackingService } from '../progress-tracking/service/progress-tracking.service';
 import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
+import { AssignMarkDto } from './dto/assign-mark.dto';
 
 @ApiTags('Teacher')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -69,7 +70,7 @@ export class TeacherController {
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async assignMark(@Body() removeOrAssignStudentDto: RemoveOrAssignStudentDto, @I18n() i18n: I18nContext) {}
+  async assignMark(@Body() assignMarkDto: AssignMarkDto, @I18n() i18n: I18nContext) {}
 
   //TODO: Accept, reject leave form
   @Post('leave-form/:classId/:id')
@@ -77,7 +78,9 @@ export class TeacherController {
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async acceptOrRejectLeaveForm(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async acceptOrRejectLeaveForm(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('id') id: string) {
+    // Only teacher who is class admin can accept or reject leave form
+  }
 
   @Post('assign-student')
   @ApiBearerAuth()
@@ -85,6 +88,7 @@ export class TeacherController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async assignStudent(@Body() removeOrAssignStudentDto: RemoveOrAssignStudentDto, @I18n() i18n: I18nContext) {
+    // Only teacher who is class admin can accept or reject the invite request, but will check later
     try {
       const { studentId, classId } = removeOrAssignStudentDto;
       const studentExisted = await this._studentService.findById(studentId);
@@ -110,6 +114,7 @@ export class TeacherController {
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async removeStudent(@Body() removeOrAssignStudentDto: RemoveOrAssignStudentDto, @I18n() i18n: I18nContext) {
+    // Only teacher who is class admin can remove student from class, but will check later
     try {
       const { studentId, classId } = removeOrAssignStudentDto;
       const studentExisted = await this._studentService.findOne({ _id: studentId, classId: classId });

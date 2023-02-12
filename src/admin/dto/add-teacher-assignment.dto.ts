@@ -1,6 +1,6 @@
 import { BaseDto } from '../../shared/dto/base.dto';
 import { ApiModelProperty } from '@nestjs/swagger/dist/decorators/api-model-property.decorator';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
 
 export class AddTeacherAssignmentDto extends BaseDto {
   @ApiModelProperty({ required: true })
@@ -17,4 +17,8 @@ export class AddTeacherAssignmentDto extends BaseDto {
   @IsString()
   @IsNotEmpty()
   classId: string;
+  @ApiModelProperty({ required: true })
+  @IsBoolean()
+  @IsNotEmpty()
+  isClassAdmin: boolean;
 }
