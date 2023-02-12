@@ -21,6 +21,10 @@ import { TeacherModule } from './teacher/teacher.module';
 import { ClassModule } from './class/class.module';
 import { TeacherAssignmentModule } from './teacher-assignment/teacher-assignment.module';
 import { CommentModule } from './comment/comment.module';
+import { EventModule } from './event/event.module';
+import { PushNotificationModule } from './push-notification/push-notification.module';
+import { ProgressTrackingModule } from './progress-tracking/progress-tracking.module';
+import { StudentModule } from './student/student.module';
 
 @Module({
   imports: [
@@ -70,6 +74,10 @@ import { CommentModule } from './comment/comment.module';
     ClassModule,
     TeacherAssignmentModule,
     CommentModule,
+    EventModule,
+    PushNotificationModule,
+    ProgressTrackingModule,
+    StudentModule,
   ],
   controllers: [AppController],
   providers: [

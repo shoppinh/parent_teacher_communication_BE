@@ -26,7 +26,7 @@ export class Post extends BaseSchema {
   description?: string;
   @Prop({ required: false })
   coverImg?: string;
-  @Prop({ required: true, default: ConstantPostType.PUBLIC })
+  @Prop({ enum: ConstantPostType, required: true, default: ConstantPostType.PUBLIC })
   type: string;
 }
 

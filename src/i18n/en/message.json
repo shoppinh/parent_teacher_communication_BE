@@ -13,5 +13,8 @@
   "nonexistent_post": "This post is not registered",
   "nonexistent_comment": "This comment is not registered",
   "nonexistent_comment_reaction": "This comment reaction is not registered",
-  "parent_has_no_right_to_access_class": "This parent has no right to access this class"
+  "parent_has_no_right_to_access_class": "This parent has no right to access this class",
+  "nonexistent_event": "This event is not registered",
+  "nonexistent_student": "This student is not registered"
+
 }

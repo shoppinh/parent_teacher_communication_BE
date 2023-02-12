@@ -10,12 +10,12 @@ import { ConstantRoles } from 'src/shared/utils/constant/role';
 import { AddUserDto } from '../auth/dto/add-user.dto';
 import { AddParentDto } from './dto/add-parent.dto';
 import { AdminService } from './service/admin.service';
-import { AddStudentDto } from './dto/add-student.dto';
+import { AddStudentDto } from '../student/dto/add-student.dto';
 import { AddClassDto } from './dto/add-class.dto';
 import { AddTeacherDto } from './dto/add-teacher.dto';
 import { AddSubjectDto } from './dto/add-subject.dto';
 import { GetAllUserDto } from './dto/get-all-user.dto';
-import { GetAllStudentDto } from './dto/get-all-student.dto';
+import { GetAllStudentDto } from '../student/dto/get-all-student.dto';
 import { AddTeacherAssignmentDto } from './dto/add-teacher-assignment.dto';
 import { GetAllParentDto } from './dto/get-all-parent.dto';
 import { GetAllClassDto } from './dto/get-all-class.dto';
@@ -32,7 +32,7 @@ import { TeacherService } from '../teacher/teacher.service';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
 import { SubjectService } from './service/subject.service';
 import { ClassService } from '../class/class.service';
-import { StudentService } from './service/student.service';
+import { StudentService } from '../student/student.service';
 
 @ApiTags('Admin')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -435,165 +435,8 @@ export class AdminController {
 
   // Student Controller Collection
 
-  @Post('student')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext) {
-    try {
-      const { parentId, classId, name, age, gender } = studentDto;
-      await validateFields({ parentId, classId, name }, `common.required_field`, i18n);
 
-      //Check parent exists
-      const parentExisted = await this._parentService.findOne({ _id: new Types.ObjectId(parentId) });
-      if (!parentExisted || !parentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-      }
 
-      //Check class exists
-      const classExisted = await this._classService.findOne({ _id: new Types.ObjectId(classId) });
-      if (!classExisted || !classExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
-      }
-      const studentInstance: any = {
-        name: name.trim(),
-        parentId: new Types.ObjectId(parentId),
-        classId: new Types.ObjectId(classId),
-        age,
-        gender,
-      };
-      const result = await this._studentService.create(studentInstance);
-      return new ApiResponse(result);
-    } catch (error) {
-      console.log('error', error);
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  @Post('student/list')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async getAllStudent(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext) {
-    try {
-      const { skip, limit, sort, search } = getAllStudentDto;
-
-      const result = await this._studentService.getStudentList(sort, search, limit, skip);
-      const [{ totalRecords, data }] = result;
-      return new ApiResponse({
-        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
-      });
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  @Put('student/:id')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
-    try {
-      const { parentId, classId, name, age, gender } = studentDto;
-      await validateFields({ id }, `common.required_field`, i18n);
-
-      //Check student exists
-      const studentExisted = await this._studentService.findById(id);
-      if (!studentExisted || !studentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
-      }
-      //Check parent exists
-      if (parentId) {
-        const parentExisted = await this._parentService.findById(parentId);
-        if (!parentExisted || !parentExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-        }
-      }
-
-      //Check class exists
-      if (classId) {
-        const classExisted = await this._classService.findById(classId);
-        if (!classExisted || !classExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
-        }
-      }
-      const studentInstance: any = {
-        name: name.trim(),
-        parentId: new Types.ObjectId(parentId),
-        classId: new Types.ObjectId(classId),
-        age,
-        gender,
-        // age: age ? age : studentExisted?.age,
-        // gender: gender ? gender : studentExisted?.gender,
-      };
-      const result = await this._studentService.update(id, studentInstance);
-      return new ApiResponse(result);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  @Delete('student/:id')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async deleteStudent(@I18n() i18n: I18nContext, @Param('id') id: string) {
-    try {
-      await validateFields({ id }, `common.required_field`, i18n);
-      const student = await this._studentService.findOne({ _id: new Types.ObjectId(id) });
-
-      if (!student) {
-        throw new HttpException(
-          await i18n.translate(`common.not_found`, {
-            args: { fieldName: 'id' },
-          }),
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const result = await this._studentService.delete(student._id);
-      return new ApiResponse(result);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  @Get('student/:id')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async getStudentById(@I18n() i18n: I18nContext, @Param('id') id: string) {
-    try {
-      await validateFields({ id }, `common.required_field`, i18n);
-      const student = await this._studentService.getStudentDetail(id);
-
-      if (!student) {
-        throw new HttpException(
-          await i18n.translate(`common.not_found`, {
-            args: { fieldName: 'id' },
-          }),
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      return new ApiResponse(student);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
 
   // Class Controller Collection
 

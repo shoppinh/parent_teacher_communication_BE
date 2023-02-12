@@ -1,12 +1,12 @@
-export const ConstantPostType = {
-  PUBLIC: 'PUBLIC',
-  PRIVATE: 'PRIVATE',
-};
+export enum ConstantPostType {
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE',
+}
 
-export const ConstantPostReactionType = {
-  LIKE: 'LIKE',
-  DISLIKE: 'DISLIKE',
-  HEART: 'HEART',
-  SURPRISED: 'SURPRISED',
-  SAD: 'SAD',
+export enum ConstantReactionType {
+  LIKE = 'LIKE',
+  DISLIKE = 'DISLIKE',
+  HEART = 'HEART',
+  SURPRISED = 'SURPRISED',
+  SAD = 'SAD',
 };

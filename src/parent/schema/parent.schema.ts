@@ -1,7 +1,7 @@
 import { BaseSchema } from 'src/shared/schema/base.schema';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { User } from '../../user/schema/user.schema';
+import { User, UserSchema } from '../../user/schema/user.schema';
 
 export type ParentDocument = Parent & Document;
 
@@ -11,7 +11,7 @@ export type ParentDocument = Parent & Document;
   },
 })
 export class Parent extends BaseSchema {
-  @Prop({ required: true })
+  @Prop({ type: UserSchema, required: true })
   userId: User;
   @Prop({ required: true })
   address: string;

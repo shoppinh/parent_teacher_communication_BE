@@ -17,18 +17,9 @@ export class ParentService extends BaseService<Parent> {
   }
 
   createParentStudentRelationAggregation() {
-    return this.model
-      .aggregate()
-      .project({
-        'userId.password': 0,
-      })
-      .lookup({
-        from: 'students',
-        localField: '_id',
-        foreignField: 'parentId',
-        as: 'children',
-      })
-      .unwind('children');
+    return this.model.aggregate().project({
+      'userId.password': 0,
+    });
   }
 
   async getParentList(sort: Partial<ParentSortOrder>, search: string, limit: number, skip: number) {
@@ -74,7 +65,8 @@ export class ParentService extends BaseService<Parent> {
       })
       .exec();
   }
-  async getAllChildrenOfParent(id: string) {
+
+  async getAllChildren(id: string) {
     const aggregation = this.createParentStudentRelationAggregation();
     return aggregation
       .match({ parentId: id })
@@ -84,6 +76,22 @@ export class ParentService extends BaseService<Parent> {
         foreignField: 'parentId',
         as: 'children',
       })
+      .exec();
+  }
+
+  async getProfile(userId: string) {
+    const aggregation = this.model.aggregate().project({
+      'userId.password': 0,
+    });
+    return aggregation
+      .match({ 'userId._id': userId })
+      .lookup({
+        from: 'students',
+        localField: '_id',
+        foreignField: 'parentId',
+        as: 'children',
+      })
+      .unwind('children')
       .exec();
   }
 }

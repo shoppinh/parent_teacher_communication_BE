@@ -3,6 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Comment } from './comment.schema';
 import { User } from '../../user/schema/user.schema';
+import { ConstantReactionType } from '../../shared/utils/constant/post';
 
 export type CommentReactionDocument = CommentReaction & Document;
 
@@ -17,8 +18,8 @@ export class CommentReaction extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   userId: User;
 
-  @Prop({ required: false })
-  reaction?: string;
+  @Prop({ required: true, enum: ConstantReactionType })
+  type: string;
 }
 
 export const CommentReactionSchema = SchemaFactory.createForClass(CommentReaction);
