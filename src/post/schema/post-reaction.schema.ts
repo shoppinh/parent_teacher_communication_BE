@@ -3,6 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from '../../user/schema/user.schema';
 import { Post } from './post.schema';
+import { ConstantReactionType } from '../../shared/utils/constant/post';
 
 export type PostReactionDocument = PostReaction & Document;
 
@@ -17,7 +18,7 @@ export class PostReaction extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   userId: User;
 
-  @Prop({ required: true })
+  @Prop({ required: true, enum: ConstantReactionType })
   type: string;
 }
 

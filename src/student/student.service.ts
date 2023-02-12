@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { BaseService } from '../../shared/service/base.service';
-import { Student, StudentDocument } from '../../parent/schema/student.schema';
+import { BaseService } from '../shared/service/base.service';
+import { Student, StudentDocument } from './schema/student.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
-import { StudentSortOrder } from '../dto/get-all-student.dto';
-import { isEmptyObject } from '../../shared/utils';
+import { StudentSortOrder } from './dto/get-all-student.dto';
+import { isEmptyObject } from '../shared/utils';
 
 @Injectable()
 export class StudentService extends BaseService<Student> {

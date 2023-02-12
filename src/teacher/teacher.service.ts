@@ -59,4 +59,15 @@ export class TeacherService extends BaseService<Teacher> {
       })
       .exec();
   }
+  async getProfile(userId: string) {
+    return this.model
+      .aggregate()
+      .match({
+        'userId._id': userId,
+      })
+      .project({
+        'userId.password': 0,
+      })
+      .exec();
+  }
 }
