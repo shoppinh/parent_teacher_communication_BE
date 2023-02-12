@@ -39,7 +39,9 @@ export class StudentController {
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getListLeaveFormByClass(@I18n() i18n: I18nContext, @Param('classId') classId: string) {}
+  async getListLeaveFormByClass(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
+    // Check if the teacher is the class admin, he/she can see the leave form of the student in the class
+  }
 
   //TODO: Get detail leave form
   @Get('leave-form/:id')
@@ -47,7 +49,10 @@ export class StudentController {
   @Roles(ConstantRoles.TEACHER, ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getDetailLeaveForm(@I18n() i18n: I18nContext, @Param('id') id: string) {}
+  async getDetailLeaveForm(@I18n() i18n: I18nContext, @Param('id') id: string) {
+    // Check if the teacher is the class admin, he/she can see the leave form of the student in the class
+    // or if the parent is the parent of the student, he/she can see the leave form of the student
+  }
 
   //TODO: Get list leave form and stats about leave of each student
   @Get('leave-form/:studentId')

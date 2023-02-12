@@ -19,6 +19,8 @@ export class TeacherAssignment extends BaseSchema {
   subjectId: Subject;
   @Prop({ type: Types.ObjectId, ref: Class.name, required: true })
   classId: Class;
+  @Prop({ required: true, default: false })
+  isClassAdmin: boolean;
 }
 
 export const TeacherAssignmentSchema = SchemaFactory.createForClass(TeacherAssignment);
