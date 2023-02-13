@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '../shared/service/base.service';
 import { Event, EventDocument } from './schema/event.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { isEmptyObject } from '../shared/utils';
 import { EventSortOrder } from './dto/get-all-event.dto';
 
@@ -71,7 +71,7 @@ export class EventService extends BaseService<Event> {
   async getDetails(id: string) {
     const aggregation = this.model
       .aggregate()
-      .match({ _id: id })
+      .match({ _id: new Types.ObjectId(id) })
       .lookup({
         from: 'users',
         localField: 'participants',

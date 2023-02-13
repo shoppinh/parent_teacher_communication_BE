@@ -16,6 +16,11 @@ import { StudentService } from './student.service';
 import { GetAllStudentDto } from './dto/get-all-student.dto';
 import { ClassService } from '../class/class.service';
 import { ParentService } from '../parent/parent.service';
+import { ProgressTrackingService } from '../progress-tracking/service/progress-tracking.service';
+import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { TeacherService } from '../teacher/teacher.service';
+import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
+import { GetAllLeaveForm } from '../progress-tracking/dto/get-all-leave-form.dto';
 
 @ApiTags('Student')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -23,81 +28,235 @@ import { ParentService } from '../parent/parent.service';
 @Controller('api/student')
 @UseGuards(JwtGuard, RolesGuard)
 export class StudentController {
-  constructor(private readonly _studentService: StudentService, private readonly _classService: ClassService, private readonly _parentService: ParentService) {}
+  constructor(
+    private readonly _studentService: StudentService,
+    private readonly _classService: ClassService,
+    private readonly _parentService: ParentService,
+    private readonly _progressTrackingService: ProgressTrackingService,
+    private readonly _teacherService: TeacherService,
+    private readonly _teacherAssignmentService: TeacherAssignmentService,
+    private readonly _leaveFormService: LeaveFormService,
+  ) {}
 
-  //TODO: Get detail progress tracking
   @Get('progress-tracking/:progressId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER, ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getDetailProgressTracking(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('progressId') id: string) {}
+  async getDetailProgressTracking(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('progressId') id: string) {
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const progressTrackingExisted = await this._progressTrackingService.findById(id);
+      if (!progressTrackingExisted || !progressTrackingExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_progress_tracking'), HttpStatus.CONFLICT);
+      }
+      if (user.role === ConstantRoles.TEACHER) {
+        // Check if the teacher is assign to this class by classId from progressTracking
+        const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+        const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+          teacherId: teacherExisted._id,
+          classId: progressTrackingExisted.classId,
+        });
+        if (!teacherAssignmentExisted || !teacherAssignmentExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_teacher_assignment'), HttpStatus.CONFLICT);
+        }
+      }
+      if (user.role === ConstantRoles.PARENT) {
+        // Check if the parent has the student in the class by studentId from progressTracking
+        // find parent by userId
+        const parentExisted = await this._parentService.getParentByUserId(user._id);
 
-  //TODO: Teacher wants to see leave form of the student in the class
-  @Get('leave-form/:classId')
+        const childExisted = await this._studentService.findOne({
+          parentId: parentExisted._id,
+          _id: progressTrackingExisted.studentId,
+        });
+        if (!childExisted || !childExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+        }
+      }
+      return new ApiResponse(progressTrackingExisted);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  @Post('leave-form-list-by-class/:classId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getListLeaveFormByClass(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
+  async getListLeaveFormByClass(@Body() getAllLeaveFormDto: GetAllLeaveForm, @GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
     // Check if the teacher is the class admin, he/she can see the leave form of the student in the class
+    try {
+      const { search, limit, skip, sort } = getAllLeaveFormDto;
+      await validateFields({ classId }, `common.required_field`, i18n);
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      if (!teacherExisted || !teacherExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+      }
+
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        classId,
+        teacherId: teacherExisted._id,
+      });
+      if (!teacherAssignmentExisted || !teacherAssignmentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_teacher_assignment'), HttpStatus.CONFLICT);
+      }
+      if (!teacherAssignmentExisted.isClassAdmin) {
+        throw new HttpException(await i18n.translate('message.not_class_admin'), HttpStatus.CONFLICT);
+      }
+      const [{ totalRecords, data }] = await this._leaveFormService.getAllLeaveFormWithFilter({ classId: new Types.ObjectId(classId) }, sort, search, limit, skip);
+
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
-  //TODO: Get detail leave form
   @Get('leave-form/:id')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER, ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getDetailLeaveForm(@I18n() i18n: I18nContext, @Param('id') id: string) {
+  async getDetailLeaveForm(@I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     // Check if the teacher is the class admin, he/she can see the leave form of the student in the class
     // or if the parent is the parent of the student, he/she can see the leave form of the student
+    try {
+      await validateFields({ id }, `common.required_field`, i18n);
+      const leaveFormExisted = await this._leaveFormService.findById(id);
+      if (!leaveFormExisted || !leaveFormExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_leave_form'), HttpStatus.CONFLICT);
+      }
+      if (user.role === ConstantRoles.TEACHER) {
+        const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+        if (!teacherExisted || !teacherExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_teacher'), HttpStatus.CONFLICT);
+        }
+
+        const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+          classId: leaveFormExisted.classId,
+          teacherId: teacherExisted._id,
+        });
+        if (!teacherAssignmentExisted || !teacherAssignmentExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_teacher_assignment'), HttpStatus.CONFLICT);
+        }
+        if (!teacherAssignmentExisted.isClassAdmin) {
+          throw new HttpException(await i18n.translate('message.not_class_admin'), HttpStatus.CONFLICT);
+        }
+      }
+      if (user.role === ConstantRoles.PARENT) {
+        // Check if the parent has the student in the class by studentId from progressTracking
+        // find parent by userId
+        const parentExisted = await this._parentService.getParentByUserId(user._id);
+
+        const childExisted = await this._studentService.findOne({
+          parentId: parentExisted._id,
+          _id: leaveFormExisted.studentId,
+        });
+        if (!childExisted || !childExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+        }
+      }
+
+      return new ApiResponse(leaveFormExisted);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
-  //TODO: Get list leave form and stats about leave of each student
-  @Get('leave-form/:studentId')
+  @Post('leave-form-list-by-student/:studentId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getListLeaveFormByStudent(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('studentId') studentId: string) {}
+  async getListLeaveFormByStudent(@Body() getAllLeaveFormDto: GetAllLeaveForm, @GetUser() user: User, @I18n() i18n: I18nContext, @Param('studentId') studentId: string) {
+    try {
+      const { search, limit, skip, sort } = getAllLeaveFormDto;
+      await validateFields({ studentId }, `common.required_field`, i18n);
+      // Check if the student is belonged to the parent
+      const parentExisted = await this._parentService.getParentByUserId(user._id);
+
+      const childExisted = await this._studentService.findOne({
+        parentId: parentExisted._id,
+        _id: studentId,
+      });
+      if (!childExisted || !childExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+      }
+      const [{ totalRecords, data }] = await this._leaveFormService.getAllLeaveFormWithFilter({ studentId: new Types.ObjectId(studentId) }, sort, search, limit, skip);
+
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
 
   // Update student(children)
   @Put(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
+  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+  async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
       const { parentId, classId, name, age, gender } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
-      // Need to check if it is parent, then check if the student is belong to the parent and cannot update classId
+      // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
+      if (user.role === ConstantRoles.PARENT) {
+        // Check if the student is belonged to the parent
+        const parentExisted = await this._parentService.getParentByUserId(user._id);
 
-      //Check student exists
-      const studentExisted = await this._studentService.findById(id);
-      if (!studentExisted || !studentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
-      }
-      //Check parent exists
-      if (parentId) {
-        const parentExisted = await this._parentService.findById(parentId);
-        if (!parentExisted || !parentExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+        const childExisted = await this._studentService.findOne({
+          parentId: parentExisted._id,
+          _id: id,
+        });
+        if (!childExisted || !childExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+        }
+        if (classId) {
+          throw new HttpException(await i18n.translate('message.not_allowed_update_field'), HttpStatus.CONFLICT);
         }
       }
 
-      //Check class exists
-      if (classId) {
-        const classExisted = await this._classService.findById(classId);
-        if (!classExisted || !classExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      if (user.role === ConstantRoles.SUPER_USER) {
+        //Check student exists
+        const studentExisted = await this._studentService.findById(id);
+        if (!studentExisted || !studentExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+        }
+        //Check parent exists
+        if (parentId) {
+          const parentExisted = await this._parentService.findById(parentId);
+          if (!parentExisted || !parentExisted?._id) {
+            throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+          }
+        }
+
+        //Check class exists
+        if (classId) {
+          const classExisted = await this._classService.findById(classId);
+          if (!classExisted || !classExisted?._id) {
+            throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+          }
         }
       }
+
       const studentInstance: any = {
         name: name.trim(),
         parentId: new Types.ObjectId(parentId),
-        classId: new Types.ObjectId(classId),
+        ...(classId && user.role === ConstantRoles.SUPER_USER && { classId: new Types.ObjectId(classId) }),
         age,
         gender,
         // age: age ? age : studentExisted?.age,

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { UserService } from '../user/service/user.service';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../shared/decorator/roles.decorator';
@@ -17,6 +17,11 @@ import { ApiResponse } from '../shared/response/api-response';
 import { ProgressTrackingService } from '../progress-tracking/service/progress-tracking.service';
 import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
 import { AssignMarkDto } from './dto/assign-mark.dto';
+import { toListResponse, validateFields } from '../shared/utils';
+import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { Types } from 'mongoose';
+import { GetAllProgressDto } from '../progress-tracking/dto/get-all-progress-tracking.dto';
+import { CheckLeaveFormDto } from '../progress-tracking/dto/check-leave-form.dto';
 
 @ApiTags('Teacher')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -31,6 +36,7 @@ export class TeacherController {
     private readonly _classService: ClassService,
     private readonly _progressTrackingService: ProgressTrackingService,
     private readonly _leaveFormService: LeaveFormService,
+    private readonly _teacherAssignmentService: TeacherAssignmentService,
   ) {}
 
   @Get('profile')
@@ -44,7 +50,8 @@ export class TeacherController {
       if (!userExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_user`), HttpStatus.NOT_FOUND);
       }
-      return this._teacherService.getProfile(user._id);
+      const result = await this._teacherService.getProfile(user._id);
+      return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
@@ -52,34 +59,179 @@ export class TeacherController {
     }
   }
 
-  //TODO: Get list progress tracking by teacher, class, year, semester
-  @Get('progress-tracking/:classId')
+  @Get('progress-tracking-list-by-class/:classId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getListProgressTracking(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
-    // First have to select which subject does this teacher teach with teacherId and classId by teacher assignment collection
-    // Secondly get list progress tracking by classId and subjectId
-    // Filter by year and semester
+  async getListProgressTracking(@Body() getAllProgressTracking: GetAllProgressDto, @GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
+    try {
+      const { year, semester, skip, limit, sort, search } = getAllProgressTracking;
+      await validateFields({ classId, year, semester }, `common.required_field`, i18n);
+      // First have to select which subject does this teacher teach with teacherId and classId by teacher assignment collection
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        teacherId: teacherExisted._id,
+        classId: new Types.ObjectId(classId),
+      });
+      if (!teacherAssignmentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
+      }
+      const [{ totalRecords, data }] = await this._progressTrackingService.getAllProgressTrackingWithFilter(
+        {
+          subjectId: teacherAssignmentExisted.subjectId,
+          classId: new Types.ObjectId(classId),
+          year,
+          semester,
+        },
+        sort,
+        search,
+        limit,
+        skip,
+      );
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+
+      // Secondly get list progress tracking by classId and subjectId
+      // Filter by year and semester
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
-  //TODO: Input, edit, delete mark for student
-  @Post('progress-tracking/assign-mark/:classId/:id')
+  @Post('progress-tracking')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async assignMark(@Body() assignMarkDto: AssignMarkDto, @I18n() i18n: I18nContext) {}
+  async addNewProgressTracking(@Body() assignMarkDto: AssignMarkDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
+    try {
+      const { studentId, classId, subjectId, mark45, mark15, examMark, year, semester } = assignMarkDto;
+      await validateFields({ classId, studentId, subjectId, year, semester }, `common.required_field`, i18n);
+      // Check if the teacher is responsible for this progress tracking
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      if (!teacherExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher`), HttpStatus.NOT_FOUND);
+      }
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        teacherId: teacherExisted._id,
+        classId,
+        subjectId,
+      });
+      if (!teacherAssignmentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
+      }
+      const studentExisted = await this._studentService.findById(studentId);
+      if (!studentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_student`), HttpStatus.NOT_FOUND);
+      }
+      const progressTrackingInstance = {
+        year,
+        semester,
+        mark15,
+        mark45,
+        examMark,
+        studentId: studentExisted._id,
+        classId: new Types.ObjectId(classId),
+        subjectId: new Types.ObjectId(subjectId),
+      };
+      const result = await this._progressTrackingService.create(progressTrackingInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
 
-  //TODO: Accept, reject leave form
-  @Post('leave-form/:classId/:id')
+  @Put('progress-tracking/:progressId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async acceptOrRejectLeaveForm(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('id') id: string) {
-    // Only teacher who is class admin can accept or reject leave form
+  async editProgressTracking(@Body() assignMarkDto: Partial<AssignMarkDto>, @I18n() i18n: I18nContext, @GetUser() user: User, @Param('progressId') progressId: string) {
+    // Check if the teacher is responsible for this progress tracking
+    try {
+      const { studentId, classId, subjectId, year, semester, mark15, mark45, examMark } = assignMarkDto;
+      await validateFields({ progressId }, `common.required_field`, i18n);
+      // Check if the teacher is responsible for this progress tracking
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      if (!teacherExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher`), HttpStatus.NOT_FOUND);
+      }
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        teacherId: teacherExisted._id,
+        classId,
+        subjectId,
+      });
+      if (!teacherAssignmentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
+      }
+      const studentExisted = await this._studentService.findById(studentId);
+      if (!studentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_student`), HttpStatus.NOT_FOUND);
+      }
+      const progressTrackingInstance = {
+        year,
+        semester,
+        mark15,
+        mark45,
+        examMark,
+        studentId: studentExisted._id,
+        classId: new Types.ObjectId(classId),
+        subjectId: new Types.ObjectId(subjectId),
+      };
+      const result = await this._progressTrackingService.update(progressId, progressTrackingInstance);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  @Put('leave-form/:formId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.TEACHER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async acceptOrRejectLeaveForm(@Body() checkLeaveFormDto: CheckLeaveFormDto, @GetUser() user: User, @I18n() i18n: I18nContext, @Param('formId') formId: string) {
+    try {
+      const { status, classId } = checkLeaveFormDto;
+      await validateFields({ formId, classId, status }, `common.required_field`, i18n);
+      const formExisted = await this._leaveFormService.findById(formId);
+      if (!formExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_leave_form`), HttpStatus.NOT_FOUND);
+      }
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.NOT_FOUND);
+      }
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      if (!teacherExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher`), HttpStatus.NOT_FOUND);
+      }
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        teacherId: teacherExisted._id,
+        classId: new Types.ObjectId(classId),
+      });
+      if (!teacherAssignmentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
+      }
+      // Only teacher who is class admin can accept or reject leave form
+      if (!teacherAssignmentExisted.isClassAdmin) {
+        throw new HttpException(await i18n.translate(`message.not_class_admin`), HttpStatus.FORBIDDEN);
+      }
+      const result = await this._leaveFormService.update(formId, { status });
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
   }
 
   @Post('assign-student')
@@ -134,5 +286,5 @@ export class TeacherController {
     }
   }
 
-  //TODO: Add badge for student if student has good behavior
+  //TODO: (Later) Add badge for student if student has good behavior
 }

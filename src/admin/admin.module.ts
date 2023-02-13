@@ -16,10 +16,10 @@ import { StudentModule } from '../student/student.module';
 @Module({
   imports: [
     UserModule,
+    StudentModule,
     ParentModule,
     ClassModule,
     TeacherModule,
-    StudentModule,
     TeacherAssignmentModule,
     MongooseModule.forFeature([
       {
@@ -29,7 +29,7 @@ import { StudentModule } from '../student/student.module';
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminService, StudentService, SubjectService],
-  exports: [AdminService, StudentService, SubjectService],
+  providers: [AdminService, SubjectService],
+  exports: [AdminService, SubjectService],
 })
 export class AdminModule {}
