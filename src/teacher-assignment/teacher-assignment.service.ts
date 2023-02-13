@@ -13,8 +13,8 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
     this.model = teacherAssignmentModel;
   }
 
-  async getTeacherAssignmentList(sort: Partial<TeacherAssignmentSortOrder>, search: string, limit: number, skip: number) {
-    const aggregation = this.model
+  createTeacherAssignmentRelationAggregation() {
+    return this.model
       .aggregate()
       .lookup({
         from: 'teachers',
@@ -22,14 +22,12 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
         foreignField: '_id',
         as: 'teacher',
       })
-      .unwind('teacher')
-      .lookup({
-        from: 'users',
-        localField: 'teacher.userId',
-        foreignField: '_id',
-        as: 'user',
-      })
-      .unwind('user')
+      .unwind('teacher');
+  }
+
+  async getTeacherAssignmentList(sort: Partial<TeacherAssignmentSortOrder>, search: string, limit: number, skip: number) {
+    const aggregation = this.createTeacherAssignmentRelationAggregation();
+    aggregation
       .lookup({
         from: 'classes',
         localField: 'classId',

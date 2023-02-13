@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '../shared/service/base.service';
 import { Parent, ParentDocument } from './schema/parent.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ParentSortOrder } from '../admin/dto/get-all-parent.dto';
 import { isEmptyObject } from '../shared/utils';
 
@@ -69,7 +69,7 @@ export class ParentService extends BaseService<Parent> {
   async getAllChildren(id: string) {
     const aggregation = this.createParentStudentRelationAggregation();
     return aggregation
-      .match({ parentId: id })
+      .match({ parentId: new Types.ObjectId(id) })
       .lookup({
         from: 'students',
         localField: '_id',
@@ -79,12 +79,18 @@ export class ParentService extends BaseService<Parent> {
       .exec();
   }
 
+  async ownThisChild(parentId: string, childId: string) {}
+
+  async getParentByUserId(userId: string) {
+    return this.model.findOne({ 'userId._id': userId }).exec();
+  }
+
   async getProfile(userId: string) {
     const aggregation = this.model.aggregate().project({
       'userId.password': 0,
     });
     return aggregation
-      .match({ 'userId._id': userId })
+      .match({ 'userId._id': new Types.ObjectId(userId) })
       .lookup({
         from: 'students',
         localField: '_id',

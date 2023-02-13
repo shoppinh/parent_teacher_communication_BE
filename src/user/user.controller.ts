@@ -10,5 +10,5 @@ import { UserService } from './service/user.service';
 export class UserController {
   constructor(private readonly _userService: UserService) {}
 
-  //TODO: Invite student, parent, teacher
+  //TODO:(Later) Invite student, parent, teacher
 }

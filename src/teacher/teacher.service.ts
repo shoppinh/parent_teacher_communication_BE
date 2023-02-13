@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseService } from '../shared/service/base.service';
 import { Teacher, TeacherDocument } from './schema/teacher.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { TeacherSortOrder } from '../admin/dto/get-all-teacher.dto';
 import { isEmptyObject } from '../shared/utils';
@@ -59,15 +59,20 @@ export class TeacherService extends BaseService<Teacher> {
       })
       .exec();
   }
+
   async getProfile(userId: string) {
     return this.model
       .aggregate()
       .match({
-        'userId._id': userId,
+        'userId._id': new Types.ObjectId(userId),
       })
       .project({
         'userId.password': 0,
       })
       .exec();
+  }
+
+  async getTeacherByUserId(id: string) {
+    return this.model.findOne({ 'userId._id': id }).exec();
   }
 }
