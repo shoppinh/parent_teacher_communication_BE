@@ -27,7 +27,6 @@ export class ParentController {
     private readonly _parentService: ParentService,
     private readonly _userService: UserService,
     private readonly _leaveFormService: LeaveFormService,
-    @Inject(forwardRef(() => StudentService))
     private readonly _studentService: StudentService,
     private readonly _classService: ClassService,
   ) {}
