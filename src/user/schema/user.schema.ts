@@ -25,7 +25,7 @@ export class User extends BaseSchema {
   mobilePhoneCode: string;
 
   @Exclude()
-  @Prop({ required: false, default: null, select: false })
+  @Prop({ required: false, default: null })
   password?: string;
 
   @Prop({
@@ -57,6 +57,8 @@ export class User extends BaseSchema {
 
   @Prop({ required: false })
   defaultLanguage: string;
+  @Prop({ required: false, default: 'https://th.bing.com/th/id/R.cb979a51044ff1d707208265c08f43f6?rik=6KsQropxk5X%2b8Q&pid=ImgRaw&r=0' })
+  avatar: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

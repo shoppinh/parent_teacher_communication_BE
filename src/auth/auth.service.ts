@@ -56,7 +56,7 @@ export class AuthService {
       if (!user?.isActive) {
         throw new HttpException(await i18n.translate(`user.unauthorized_blocked`), HttpStatus.BAD_REQUEST);
       }
-      const isMatch = user.password ? await compare(dto.password?.toString()?.trim(), user.password?.trim()) : true;
+      const isMatch = user.password ? await compare(dto.password?.toString()?.trim(), user.password?.trim()) : false;
       if (!isMatch) {
         throw new HttpException(await i18n.translate(`user.unauthorized`), HttpStatus.BAD_REQUEST);
       }
@@ -105,6 +105,8 @@ export class AuthService {
         });
       }
       const accessTokenDecode = this.jwtDecrypt(tokenData.accessToken);
+      const lastLoggedInDate = new Date();
+      await this._userService.update(user._id, { lastLoggedIn: lastLoggedInDate });
 
       return {
         userId: user._id,
@@ -120,6 +122,8 @@ export class AuthService {
         expiresIn: accessTokenDecode?.exp * 1000,
         expiresDate: new Date(accessTokenDecode?.exp * 1000),
         isRemember,
+        isActive: user.isActive,
+        lastLoggedIn: lastLoggedInDate,
       };
     } catch (e) {
       console.log('🚀 ~ file: auth.service.ts:127 ~ AuthService ~ login ~ e', e);
