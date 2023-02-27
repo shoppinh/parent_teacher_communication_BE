@@ -435,9 +435,6 @@ export class AdminController {
 
   // Student Controller Collection
 
-
-
-
   // Class Controller Collection
 
   @Post('class')
