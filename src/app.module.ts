@@ -25,6 +25,7 @@ import { EventModule } from './event/event.module';
 import { PushNotificationModule } from './push-notification/push-notification.module';
 import { ProgressTrackingModule } from './progress-tracking/progress-tracking.module';
 import { StudentModule } from './student/student.module';
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { StudentModule } from './student/student.module';
     PushNotificationModule,
     ProgressTrackingModule,
     StudentModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [
