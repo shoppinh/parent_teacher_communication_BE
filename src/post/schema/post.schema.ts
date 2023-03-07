@@ -28,6 +28,8 @@ export class Post extends BaseSchema {
   coverImg?: string;
   @Prop({ enum: ConstantPostType, required: true, default: ConstantPostType.PUBLIC })
   type: string;
+  @Prop({ required: false })
+  attachments: string[];
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
