@@ -149,7 +149,7 @@ export class PostService extends BaseService<Post> {
       .exec();
   }
 
-  // Only for the parent
+  // Only for the parent and teacher
   async getAllPostByClass(user: User, getAllPostDto: GetAllPostDto, id: string) {
     const { sort, search, limit, skip } = getAllPostDto;
 
@@ -159,6 +159,13 @@ export class PostService extends BaseService<Post> {
       .match({
         classId: new Types.ObjectId(id),
       })
+      .lookup({
+        from: 'users',
+        localField: 'authorId',
+        foreignField: '_id',
+        as: 'author',
+      })
+      .unwind('author')
       .lookup({
         from: 'comments',
         localField: '_id',
@@ -178,6 +185,7 @@ export class PostService extends BaseService<Post> {
           __v: 0,
           postId: 0,
         },
+        authorId: 0,
         reactions: {
           _id: 0,
           __v: 0,

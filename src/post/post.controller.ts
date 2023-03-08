@@ -20,6 +20,8 @@ import { ClassService } from '../class/class.service';
 import { AddPostReactionDto } from './dto/add-post-reaction.dto';
 import { Types } from 'mongoose';
 import { ParentService } from '../parent/parent.service';
+import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { TeacherService } from 'src/teacher/teacher.service';
 
 @ApiTags('Post')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -34,6 +36,8 @@ export class PostController {
     private readonly _postReactionService: PostReactionService,
     private readonly _classService: ClassService,
     private readonly _parentService: ParentService,
+    private readonly _teacherService: TeacherService,
+    private readonly _teacherAssignmentService: TeacherAssignmentService,
   ) {}
 
   @Post('list')
@@ -78,7 +82,7 @@ export class PostController {
 
   @Post('class-post-list/:classId')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT)
+  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getAllPostByClass(@Body() getAllPostDto: GetAllPostDto, @I18n() i18n: I18nContext, @GetUser() user: User, @Param('classId') classId: string) {
@@ -90,15 +94,26 @@ export class PostController {
         throw new HttpException(i18n.translate('message.nonexistent_class'), HttpStatus.NOT_FOUND);
       }
       // Find if user(parent) has right to access the class
-      const childrenList = await this._parentService
-        .createParentStudentRelationAggregation()
-        .match({
-          'children.classId': new Types.ObjectId(classId),
-        })
-        .exec();
-      if (!childrenList.length) {
-        throw new HttpException(i18n.translate('message.parent_has_no_right_to_access_class'), HttpStatus.FORBIDDEN);
+      if (user.role === ConstantRoles.PARENT) {
+        const childrenList = await this._parentService
+          .createParentStudentRelationAggregation()
+          .match({
+            'children.classId': new Types.ObjectId(classId),
+          })
+          .exec();
+        if (!childrenList.length) {
+          throw new HttpException(i18n.translate('message.parent_has_no_right_to_access_class'), HttpStatus.FORBIDDEN);
+        }
       }
+      // find if user(teacher) has right to access the class
+      if (user.role === ConstantRoles.TEACHER) {
+        const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+        const teacherClassExisted = await this._teacherAssignmentService.findOne({ classId: new Types.ObjectId(classId), teacherId: new Types.ObjectId(teacherExisted._id) });
+        if (!teacherClassExisted) {
+          throw new HttpException(i18n.translate('message.teacher_has_no_right_to_access_class'), HttpStatus.FORBIDDEN);
+        }
+      }
+
       const result = await this._postService.getAllPostByClass(user, getAllPostDto, classId);
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
@@ -113,7 +128,7 @@ export class PostController {
 
   @Post('add-post')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.SUPER_USER)
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async addPost(@Body() addPostDto: AddPostDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
@@ -142,7 +157,7 @@ export class PostController {
 
   @Put(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.SUPER_USER)
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async updatePost(@Body() updatePostDto: Partial<AddPostDto>, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
@@ -178,7 +193,7 @@ export class PostController {
 
   @Get(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.SUPER_USER)
+  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getPostDetail(@I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
@@ -191,7 +206,7 @@ export class PostController {
 
   @Delete(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.SUPER_USER)
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async deletePost(@I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {

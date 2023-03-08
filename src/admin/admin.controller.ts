@@ -815,7 +815,7 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   async addTeacherAssignment(@Body() teacherAssignmentDto: AddTeacherAssignmentDto, @I18n() i18n: I18nContext) {
     try {
-      const { teacherId, classId, subjectId } = teacherAssignmentDto;
+      const { teacherId, classId, subjectId, isClassAdmin } = teacherAssignmentDto;
       await validateFields({ teacherId, classId, subjectId }, `common.required_field`, i18n);
 
       //Check teacher exists
@@ -840,6 +840,7 @@ export class AdminController {
         teacherId: new Types.ObjectId(teacherId),
         classId: new Types.ObjectId(classId),
         subjectId: new Types.ObjectId(subjectId),
+        isClassAdmin,
       };
 
       const result = await this._teacherAssignmentService.create(teacherAssignmentInstance);
