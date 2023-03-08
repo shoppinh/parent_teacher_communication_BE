@@ -9,6 +9,7 @@ import { ParentModule } from '../parent/parent.module';
 import { ClassModule } from '../class/class.module';
 import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
 import { CommentModule } from '../comment/comment.module';
+import { TeacherModule } from '../teacher/teacher.module';
 
 @Module({
   providers: [PostService, PostReactionService],
@@ -30,6 +31,7 @@ import { CommentModule } from '../comment/comment.module';
     ClassModule,
     TeacherAssignmentModule,
     CommentModule,
+    TeacherModule,
   ],
 })
 export class PostModule {}

@@ -20,5 +20,6 @@
   "nonexistent_teacher_assignment": "This teacher assignment is not registered",
   "not_class_admin": "You are not the admin of this class",
   "nonexistent_leave_form": "This leave form is not registered",
-  "not_allowed_update_field": "You are not allowed to update this field"
+  "not_allowed_update_field": "You are not allowed to update this field",
+  "teacher_has_no_right_to_access_class": "This teacher has no right to access this class"
 }
