@@ -1,7 +1,7 @@
 import { BaseSchema } from 'src/shared/schema/base.schema';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { User } from '../../user/schema/user.schema';
+import { User, UserSchema } from '../../user/schema/user.schema';
 import { Post } from '../../post/schema/post.schema';
 
 export type CommentDocument = Comment & Document;
@@ -12,7 +12,7 @@ export type CommentDocument = Comment & Document;
   },
 })
 export class Comment extends BaseSchema {
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  @Prop({ type: UserSchema, required: true })
   userId: User;
   @Prop({ type: Types.ObjectId, ref: Post.name, required: true })
   postId: Post;
