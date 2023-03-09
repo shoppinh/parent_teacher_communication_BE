@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '../shared/service/base.service';
 import { TeacherAssignment, TeacherAssignmentDocument } from './schema/teacher-assignment.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { TeacherAssignmentSortOrder } from '../admin/dto/get-all-teacher-assignment.dto';
 import { isEmptyObject } from '../shared/utils';
 
@@ -90,5 +90,26 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
       .populate('classId subjectId')
       .populate({ path: 'teacherId', populate: { path: 'userId' } })
       .exec();
+  }
+
+  async getTeacherAssignmentListForTeacher(teacherId: string) {
+    const aggregation = this.model.aggregate();
+    return aggregation
+      .match({ teacherId: new Types.ObjectId(teacherId) })
+      .lookup({
+        from: 'classes',
+        localField: 'classId',
+        foreignField: '_id',
+        as: 'class',
+      })
+      .unwind('class')
+      .project({
+        class: 1,
+      })
+      .exec();
+    // return this.model
+    //   .find({ teacherId: new Types.ObjectId(teacherId) })
+    //   .populate('classId')
+    //   .exec();
   }
 }

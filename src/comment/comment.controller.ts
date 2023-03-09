@@ -40,7 +40,7 @@ export class CommentController {
       }
       const commentInstance: any = {
         content,
-        userId: user._id,
+        userId: user,
         postId: new Types.ObjectId(postId),
       };
       const result = await this._commentService.create(commentInstance);

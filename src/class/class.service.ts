@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ClassSortOrder } from '../admin/dto/get-all-class.dto';
 import { isEmptyObject } from '../shared/utils';
+import { User } from '../user/schema/user.schema';
 
 @Injectable()
 export class ClassService extends BaseService<Class> {
@@ -53,4 +54,8 @@ export class ClassService extends BaseService<Class> {
       })
       .exec();
   }
+
+  async getClassListForTeacher(user: User) {}
+
+  async getClassListForParent(user: User) {}
 }

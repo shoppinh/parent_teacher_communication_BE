@@ -22,7 +22,7 @@ import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignmen
     ]),
     UserModule,
     forwardRef(() => StudentModule),
-    ClassModule,
+    forwardRef(() => ClassModule),
     ProgressTrackingModule,
     TeacherAssignmentModule,
   ],
