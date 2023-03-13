@@ -45,7 +45,10 @@ export class CommentController {
       };
       await this._commentService.create(commentInstance);
       const result = await this._commentService.getAllCommentByPostId(postId);
-      return new ApiResponse(result);
+      return new ApiResponse({
+        list: result,
+        postId: postId,
+      });
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
