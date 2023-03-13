@@ -17,9 +17,20 @@ export class ParentService extends BaseService<Parent> {
   }
 
   createParentStudentRelationAggregation() {
-    return this.model.aggregate().project({
-      'userId.password': 0,
-    });
+    return this.model
+      .aggregate()
+      .lookup({
+        from: 'students',
+        localField: '_id',
+        foreignField: 'parentId',
+        as: 'children',
+      })
+      .unwind({
+        path: '$children',
+      })
+      .project({
+        'userId.password': 0,
+      });
   }
 
   async getParentList(sort: Partial<ParentSortOrder>, search: string, limit: number, skip: number) {
