@@ -93,6 +93,13 @@ export class PostController {
       if (!classExisted) {
         throw new HttpException(i18n.translate('message.nonexistent_class'), HttpStatus.NOT_FOUND);
       }
+      if (classExisted.isSchoolClass) {
+        const result = await this._postService.getAllPostByClass(getAllPostDto, classId);
+        const [{ totalRecords, data }] = result;
+        return new ApiResponse({
+          ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+        });
+      }
       // Find if user(parent) has right to access the class
       if (user.role === ConstantRoles.PARENT) {
         const childrenList = await this._parentService
@@ -114,7 +121,7 @@ export class PostController {
         }
       }
 
-      const result = await this._postService.getAllPostByClass(user, getAllPostDto, classId);
+      const result = await this._postService.getAllPostByClass(getAllPostDto, classId);
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
@@ -166,7 +173,8 @@ export class PostController {
       await validateFields({ id }, `common.required_field`, i18n);
       const existedPost = await this._postService.findById(id);
       if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
-      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString() || user.role !== ConstantRoles.SUPER_USER)
+        throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
       if (classId) {
         const classExisted = await this._classService.findById(classId);
@@ -214,7 +222,8 @@ export class PostController {
       await validateFields({ id }, `common.required_field`, i18n);
       const existedPost = await this._postService.findById(id);
       if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
-      if (existedPost.authorId.toString() !== user._id.toString()) throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
+      if (existedPost.authorId.toString() !== user._id.toString() || user.role !== ConstantRoles.SUPER_USER)
+        throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
       await this._postService.delete(id);
       await this._commentService.deleteByCondition({ postId: id });

@@ -150,7 +150,7 @@ export class PostService extends BaseService<Post> {
   }
 
   // Only for the parent and teacher
-  async getAllPostByClass(user: User, getAllPostDto: GetAllPostDto, id: string) {
+  async getAllPostByClass(getAllPostDto: GetAllPostDto, id: string) {
     const { sort, search, limit, skip } = getAllPostDto;
 
     const paginationStage: PipelineStage.FacetPipelineStage[] = [];

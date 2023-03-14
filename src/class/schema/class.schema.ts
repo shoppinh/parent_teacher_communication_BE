@@ -12,6 +12,8 @@ export type ClassDocument = Class & Document;
 export class Class extends BaseSchema {
   @Prop({ required: true })
   name: string;
+  @Prop({ required: true, default: false })
+  isSchoolClass: boolean;
 }
 
 export const ClassSchema = SchemaFactory.createForClass(Class);
