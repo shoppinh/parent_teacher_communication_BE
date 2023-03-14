@@ -29,7 +29,7 @@ export class ClassController {
 
   @Get('list-by-role')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.TEACHER, ConstantRoles.PARENT)
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.PARENT, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getListByRole(@GetUser() user, @I18n() i18n: I18nContext) {
@@ -42,6 +42,11 @@ export class ClassController {
       } else if (user.role === ConstantRoles.TEACHER) {
         const teacherExisted = await this.teacherService.getTeacherByUserId(user._id);
         const classExisted = await this.teacherAssignmentService.getTeacherAssignmentListForTeacher(teacherExisted._id);
+        return new ApiResponse({
+          ...toListResponse([classExisted, classExisted.length ?? 0]),
+        });
+      } else {
+        const classExisted = await this.classService.findAll({ isSchoolClass: false });
         return new ApiResponse({
           ...toListResponse([classExisted, classExisted.length ?? 0]),
         });

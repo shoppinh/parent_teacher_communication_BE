@@ -9,7 +9,7 @@
   "existed_subject_name": "This subject name is already registered",
   "nonexistent_subject": "This subject is not registered",
   "unauthorized_class": "You are not authorized to access this class",
-  "not_author": "You are not the author of this post",
+  "not_author": "You are not the author of this post or an administrator",
   "nonexistent_post": "This post is not registered",
   "nonexistent_comment": "This comment is not registered",
   "nonexistent_comment_reaction": "This comment reaction is not registered",
