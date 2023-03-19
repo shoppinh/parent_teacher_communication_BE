@@ -31,11 +31,19 @@ export class ProgressTrackingService extends BaseService<Progress> {
         as: 'subject',
       })
       .unwind('subject')
+      .lookup({
+        from: 'classes',
+        localField: 'classId',
+        foreignField: '_id',
+        as: 'class',
+      })
+      .unwind('class')
       .project({
         __v: 0,
         studentId: 0,
         subjectId: 0,
       });
+
     const paginationStage: PipelineStage.FacetPipelineStage[] = [
       {
         $skip: skip ? skip : 0,

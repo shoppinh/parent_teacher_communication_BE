@@ -115,7 +115,10 @@ export class PostController {
       // find if user(teacher) has right to access the class
       if (user.role === ConstantRoles.TEACHER) {
         const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
-        const teacherClassExisted = await this._teacherAssignmentService.findOne({ classId: new Types.ObjectId(classId), teacherId: new Types.ObjectId(teacherExisted._id) });
+        const teacherClassExisted = await this._teacherAssignmentService.findOne({
+          classId: new Types.ObjectId(classId),
+          teacherId: new Types.ObjectId(teacherExisted._id),
+        });
         if (!teacherClassExisted) {
           throw new HttpException(i18n.translate('message.teacher_has_no_right_to_access_class'), HttpStatus.FORBIDDEN);
         }
@@ -173,7 +176,7 @@ export class PostController {
       await validateFields({ id }, `common.required_field`, i18n);
       const existedPost = await this._postService.findById(id);
       if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
-      if (existedPost.authorId.toString() !== user._id.toString() || user.role !== ConstantRoles.SUPER_USER)
+      if (existedPost.authorId.toString() !== user._id.toString() && user.role !== ConstantRoles.SUPER_USER)
         throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
       if (classId) {
@@ -188,7 +191,7 @@ export class PostController {
         content,
         coverImg,
         authorId: user._id,
-        classId: new Types.ObjectId(classId),
+        ...(classId && { classId: new Types.ObjectId(classId) }),
       };
       const result = await this._postService.update(id, updatePostInstance);
       return new ApiResponse(result);
@@ -260,7 +263,11 @@ export class PostController {
         return new ApiResponse(result);
       }
 
-      const result = await this._postReactionService.create({ type, userId: user._id, postId: new Types.ObjectId(postId) });
+      const result = await this._postReactionService.create({
+        type,
+        userId: user._id,
+        postId: new Types.ObjectId(postId),
+      });
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
