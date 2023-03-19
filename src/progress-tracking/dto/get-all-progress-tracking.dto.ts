@@ -22,10 +22,10 @@ export class GetAllProgressDto extends PaginationDto {
   search: string;
   @ApiModelPropertyOptional()
   @IsNumber()
-  @IsNotEmpty()
+  @IsOptional()
   year: number;
   @ApiModelPropertyOptional()
   @IsNumber()
-  @IsNotEmpty()
+  @IsOptional()
   semester: number;
 }

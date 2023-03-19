@@ -108,15 +108,15 @@ export class StudentController {
         throw new HttpException(await i18n.translate(`message.nonexistent_child`), HttpStatus.NOT_FOUND);
       }
 
-      if (childrenExisted.parentId !== parentExisted._id) {
+      if (childrenExisted.parentId.toString() !== parentExisted._id.toString()) {
         throw new HttpException(await i18n.translate(`message.not_belonged_to_parent`), HttpStatus.NOT_FOUND);
       }
 
       const [{ totalRecords, data }] = await this._progressTrackingService.getAllProgressTrackingWithFilter(
         {
           studentId: new Types.ObjectId(studentId),
-          year,
-          semester,
+          ...(year && { year }),
+          ...(semester && { semester }),
         },
         sort,
         search,
@@ -398,7 +398,7 @@ export class StudentController {
   // Get all student(children) of parent
   @Post('list')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER)
+  @Roles(ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getAllStudent(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {

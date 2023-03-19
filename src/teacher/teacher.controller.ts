@@ -332,6 +332,32 @@ export class TeacherController {
       });
     }
   }
+  @Get('teacher-assignment-detail/:classId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.TEACHER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getTeacherAssignmentDetailByClassAndId(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
+    try {
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      if (!teacherExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher`), HttpStatus.NOT_FOUND);
+      }
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        teacherId: teacherExisted._id,
+        classId: new Types.ObjectId(classId),
+      });
+      if (!teacherAssignmentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
+      }
+      const result = await this._teacherAssignmentService.getTeacherAssignmentDetail(teacherAssignmentExisted._id);
+      return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
 
   //TODO: (Later) Add badge for student if student has good behavior
 }
