@@ -21,5 +21,6 @@
   "not_class_admin": "You are not the admin of this class",
   "nonexistent_leave_form": "This leave form is not registered",
   "not_allowed_update_field": "You are not allowed to update this field",
-  "teacher_has_no_right_to_access_class": "This teacher has no right to access this class"
+  "teacher_has_no_right_to_access_class": "This teacher has no right to access this class",
+  "not_belonged_to_parent": "This child is not belonged to this parent"
 }

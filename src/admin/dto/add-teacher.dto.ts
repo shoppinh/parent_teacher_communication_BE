@@ -16,7 +16,7 @@ export class AddTeacherDto extends AddUserDto {
   @ApiModelProperty({ required: false })
   @IsNumber()
   @IsOptional()
-  age?: string;
+  age?: number;
 
   @ApiModelProperty({ required: false })
   @IsString()

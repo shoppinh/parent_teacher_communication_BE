@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { UserService } from '../user/service/user.service';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../shared/decorator/roles.decorator';
@@ -59,7 +59,7 @@ export class TeacherController {
     }
   }
 
-  @Get('progress-tracking-list-by-class/:classId')
+  @Post('progress-tracking-list-by-class/:classId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
@@ -67,7 +67,7 @@ export class TeacherController {
   async getListProgressTracking(@Body() getAllProgressTracking: GetAllProgressDto, @GetUser() user: User, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
     try {
       const { year, semester, skip, limit, sort, search } = getAllProgressTracking;
-      await validateFields({ classId, year, semester }, `common.required_field`, i18n);
+      await validateFields({ classId }, `common.required_field`, i18n);
       // First have to select which subject does this teacher teach with teacherId and classId by teacher assignment collection
       const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
       const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
@@ -92,7 +92,6 @@ export class TeacherController {
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
       });
-
       // Secondly get list progress tracking by classId and subjectId
       // Filter by year and semester
     } catch (error) {
@@ -109,7 +108,7 @@ export class TeacherController {
   @HttpCode(HttpStatus.OK)
   async addNewProgressTracking(@Body() assignMarkDto: AssignMarkDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
-      const { studentId, classId, subjectId, mark45, mark15, examMark, year, semester } = assignMarkDto;
+      const { studentId, classId, subjectId, finalExamMark, middleExamMark, frequentMark, averageMark, year, semester, note } = assignMarkDto;
       await validateFields({ classId, studentId, subjectId, year, semester }, `common.required_field`, i18n);
       // Check if the teacher is responsible for this progress tracking
       const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
@@ -118,8 +117,8 @@ export class TeacherController {
       }
       const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
         teacherId: teacherExisted._id,
-        classId,
-        subjectId,
+        classId: new Types.ObjectId(classId),
+        subjectId: new Types.ObjectId(subjectId),
       });
       if (!teacherAssignmentExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
@@ -131,12 +130,14 @@ export class TeacherController {
       const progressTrackingInstance = {
         year,
         semester,
-        mark15,
-        mark45,
-        examMark,
+        finalExamMark,
+        frequentMark,
+        middleExamMark,
+        averageMark,
         studentId: studentExisted._id,
         classId: new Types.ObjectId(classId),
         subjectId: new Types.ObjectId(subjectId),
+        note,
       };
       const result = await this._progressTrackingService.create(progressTrackingInstance);
       return new ApiResponse(result);
@@ -155,17 +156,22 @@ export class TeacherController {
   async editProgressTracking(@Body() assignMarkDto: Partial<AssignMarkDto>, @I18n() i18n: I18nContext, @GetUser() user: User, @Param('progressId') progressId: string) {
     // Check if the teacher is responsible for this progress tracking
     try {
-      const { studentId, classId, subjectId, year, semester, mark15, mark45, examMark } = assignMarkDto;
+      const { studentId, classId, subjectId, year, semester, finalExamMark, frequentMark, averageMark, middleExamMark, note } = assignMarkDto;
       await validateFields({ progressId }, `common.required_field`, i18n);
       // Check if the teacher is responsible for this progress tracking
+      const progressTrackingExisted = await this._progressTrackingService.findById(progressId);
+      if (!progressTrackingExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_progress_tracking`), HttpStatus.NOT_FOUND);
+      }
+
       const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
       if (!teacherExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_teacher`), HttpStatus.NOT_FOUND);
       }
       const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
         teacherId: teacherExisted._id,
-        classId,
-        subjectId,
+        classId: new Types.ObjectId(classId),
+        subjectId: new Types.ObjectId(subjectId),
       });
       if (!teacherAssignmentExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
@@ -177,15 +183,56 @@ export class TeacherController {
       const progressTrackingInstance = {
         year,
         semester,
-        mark15,
-        mark45,
-        examMark,
+        finalExamMark,
+        frequentMark,
+        middleExamMark,
+        averageMark,
         studentId: studentExisted._id,
         classId: new Types.ObjectId(classId),
         subjectId: new Types.ObjectId(subjectId),
+        note,
       };
       const result = await this._progressTrackingService.update(progressId, progressTrackingInstance);
       return new ApiResponse(result);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  @Delete('progress-tracking/:progressId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.TEACHER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async deleteProgressTracking(@I18n() i18n: I18nContext, @GetUser() user: User, @Param('progressId') progressId: string) {
+    // Check if the teacher is responsible for this progress tracking
+    try {
+      await validateFields({ progressId }, `common.required_field`, i18n);
+      // Check if the teacher is responsible for this progress tracking
+      const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+      if (!teacherExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher`), HttpStatus.NOT_FOUND);
+      }
+      const progressExisted = await this._progressTrackingService.findById(progressId);
+      if (!progressExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_progress_tracking`), HttpStatus.NOT_FOUND);
+      }
+
+      const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
+        teacherId: teacherExisted._id,
+        classId: progressExisted.classId,
+        subjectId: progressExisted.subjectId,
+      });
+      if (!teacherAssignmentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_teacher_assignment`), HttpStatus.NOT_FOUND);
+      }
+
+      await this._progressTrackingService.delete(progressId);
+      return new ApiResponse({
+        status: true,
+      });
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,

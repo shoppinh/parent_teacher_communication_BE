@@ -21,6 +21,7 @@ import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignme
 import { TeacherService } from '../teacher/teacher.service';
 import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
 import { GetAllLeaveForm } from '../progress-tracking/dto/get-all-leave-form.dto';
+import { GetAllProgressDto } from '../progress-tracking/dto/get-all-progress-tracking.dto';
 
 @ApiTags('Student')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -74,7 +75,60 @@ export class StudentController {
           throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
         }
       }
-      return new ApiResponse(progressTrackingExisted);
+      const [progressTrackingDetail] = await this._progressTrackingService.getDetailProgressTracking(id);
+      return new ApiResponse(progressTrackingDetail);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  @Post('progress-tracking-list-by-student/:studentId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.PARENT)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getProgressTrackingByStudent(@Body() getAllProgressTracking: GetAllProgressDto, @I18n() i18n: I18nContext, @Param('studentId') studentId: string, @GetUser() user: User) {
+    try {
+      const { year, semester, skip, limit, sort, search } = getAllProgressTracking;
+      await validateFields({ studentId }, `common.required_field`, i18n);
+      // First have to select which subject does this teacher teach with teacherId and classId by teacher assignment collection
+      const parentExisted = await this._parentService.getParentByUserId(user._id);
+
+      if (!parentExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_parent`), HttpStatus.NOT_FOUND);
+      }
+
+      const childrenExisted = await this._studentService.findOne({
+        _id: new Types.ObjectId(studentId),
+      });
+
+      if (!childrenExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_child`), HttpStatus.NOT_FOUND);
+      }
+
+      if (childrenExisted.parentId !== parentExisted._id) {
+        throw new HttpException(await i18n.translate(`message.not_belonged_to_parent`), HttpStatus.NOT_FOUND);
+      }
+
+      const [{ totalRecords, data }] = await this._progressTrackingService.getAllProgressTrackingWithFilter(
+        {
+          studentId: new Types.ObjectId(studentId),
+          year,
+          semester,
+        },
+        sort,
+        search,
+        limit,
+        skip,
+      );
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+
+      // Secondly get list progress tracking by classId and subjectId
+      // Filter by year and semester
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
@@ -203,60 +257,33 @@ export class StudentController {
     }
   }
 
-  // Update student(children)
+  // Update student(children) of the parent
   @Put(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT)
+  @Roles(ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
-      const { parentId, classId, name, age, gender } = studentDto;
+      const { name, age, gender } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
       // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
-      if (user.role === ConstantRoles.PARENT) {
-        // Check if the student is belonged to the parent
-        const parentExisted = await this._parentService.getParentByUserId(user._id);
-
-        const childExisted = await this._studentService.findOne({
-          parentId: parentExisted._id,
-          _id: id,
-        });
-        if (!childExisted || !childExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
-        }
-        if (classId) {
-          throw new HttpException(await i18n.translate('message.not_allowed_update_field'), HttpStatus.CONFLICT);
-        }
+      // Check if the student is belonged to the parent
+      const parentExisted = await this._parentService.getParentByUserId(user._id);
+      if (!parentExisted || !parentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
       }
-
-      if (user.role === ConstantRoles.SUPER_USER) {
-        //Check student exists
-        const studentExisted = await this._studentService.findById(id);
-        if (!studentExisted || !studentExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
-        }
-        //Check parent exists
-        if (parentId) {
-          const parentExisted = await this._parentService.findById(parentId);
-          if (!parentExisted || !parentExisted?._id) {
-            throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-          }
-        }
-
-        //Check class exists
-        if (classId) {
-          const classExisted = await this._classService.findById(classId);
-          if (!classExisted || !classExisted?._id) {
-            throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
-          }
-        }
+      const childExisted = await this._studentService.findOne({
+        parentId: parentExisted._id,
+        _id: id,
+      });
+      if (!childExisted || !childExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
       }
 
       const studentInstance: any = {
         name: name.trim(),
-        parentId: new Types.ObjectId(parentId),
-        ...(classId && user.role === ConstantRoles.SUPER_USER && { classId: new Types.ObjectId(classId) }),
+        parentId: parentExisted._id,
         age,
         gender,
         // age: age ? age : studentExisted?.age,
@@ -271,16 +298,16 @@ export class StudentController {
     }
   }
 
-  // Delete student(children)
+  // Delete the student of parent
   @Delete(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT)
+  @Roles(ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async deleteStudent(@I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
-      // Need to check if it is parent, then check if the student is belong to the parent
+      // Need to check if it is parent, then check if the student is belonged to the parent
       const student = await this._studentService.findOne({ _id: new Types.ObjectId(id) });
 
       if (!student) {
@@ -300,16 +327,17 @@ export class StudentController {
     }
   }
 
-  // Get student(children) by id
+  // Get student detail
   @Get(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT)
+  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getStudentById(@I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
-      // Need to check if it is parent, then check if the student is belong to the parent
+      // Need to check if it is parent, then check if the student is belonged to the parent
+      // If teacher, check if this student is under teacher control
       const student = await this._studentService.getStudentDetail(id);
 
       if (!student) {
@@ -329,18 +357,18 @@ export class StudentController {
   }
 
   // Add student(children)
-  @Post('student')
+  @Post('')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT)
+  @Roles(ConstantRoles.PARENT)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext) {
+  async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
-      const { parentId, classId, name, age, gender } = studentDto;
-      await validateFields({ parentId, classId, name }, `common.required_field`, i18n);
+      const { classId, name, age, gender } = studentDto;
+      await validateFields({ classId, name }, `common.required_field`, i18n);
 
       //Check parent exists
-      const parentExisted = await this._parentService.findOne({ _id: new Types.ObjectId(parentId) });
+      const parentExisted = await this._parentService.getParentByUserId(user._id);
       if (!parentExisted || !parentExisted?._id) {
         throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
       }
@@ -352,7 +380,7 @@ export class StudentController {
       }
       const studentInstance: any = {
         name: name.trim(),
-        parentId: new Types.ObjectId(parentId),
+        parentId: parentExisted._id,
         classId: new Types.ObjectId(classId),
         age,
         gender,
@@ -367,17 +395,21 @@ export class StudentController {
     }
   }
 
-  // Get all student(children)
+  // Get all student(children) of parent
   @Post('list')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllStudent(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext) {
+  async getAllStudent(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
       const { skip, limit, sort, search } = getAllStudentDto;
-
-      const result = await this._studentService.getStudentList(sort, search, limit, skip);
+      //Check parent exists
+      const parentExisted = await this._parentService.getParentByUserId(user._id);
+      if (!parentExisted || !parentExisted?._id) {
+        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+      }
+      const result = await this._studentService.getStudentList(sort, search, limit, skip, { parentId: new Types.ObjectId(parentExisted._id) });
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
@@ -389,10 +421,10 @@ export class StudentController {
     }
   }
 
-  // Get all student(children) by parent
+  // Get all student(children) by parent without pagination
   @Get('list-by-parent/:parentId')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT)
+  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async getAllChildren(@I18n() i18n: I18nContext, @Param('parentId') parentId: string) {
@@ -401,7 +433,38 @@ export class StudentController {
       if (!parentExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_parent`), HttpStatus.NOT_FOUND);
       }
-      return this._studentService.findAll({ parentId: new Types.ObjectId(parentId) });
+      const result = await this._studentService.getStudentList(undefined, undefined, undefined, undefined, { parentId: new Types.ObjectId(parentId) });
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  // Get all student(children) by class  without pagination
+
+  @Get('list-by-class/:classId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT, ConstantRoles.TEACHER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getAllStudentByClass(@I18n() i18n: I18nContext, @Param('classId') classId: string) {
+    try {
+      // check parent if he/she can access to class
+      // check teacher if he/she can access to class
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.NOT_FOUND);
+      }
+      const result = await this._studentService.getStudentList(undefined, undefined, undefined, undefined, { classId: new Types.ObjectId(classId) });
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,

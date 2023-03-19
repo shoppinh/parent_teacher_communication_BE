@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
 import { StudentSortOrder } from './dto/get-all-student.dto';
 import { isEmptyObject } from '../shared/utils';
+import { Progress } from '../progress-tracking/schema/progress.schema';
 
 @Injectable()
 export class StudentService extends BaseService<Student> {
@@ -13,9 +14,10 @@ export class StudentService extends BaseService<Student> {
     this.model = _studentDocumentModel;
   }
 
-  async getStudentList(sort: Partial<StudentSortOrder>, search: string, limit: number, skip: number) {
+  async getStudentList(sort?: Partial<StudentSortOrder>, search?: string, limit?: number, skip?: number, filter?: Partial<Record<keyof Student, unknown>>) {
     const aggregation = this.model
       .aggregate()
+      .match(filter ? filter : {})
       .lookup({
         from: 'parents',
         localField: 'parentId',

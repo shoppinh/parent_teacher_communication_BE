@@ -14,11 +14,14 @@ export type ProgressDocument = Progress & Document;
 })
 export class Progress extends BaseSchema {
   @Prop({ required: false })
-  mark15: number;
+  frequentMark: number;
   @Prop({ required: false })
-  mark45: number;
+  middleExamMark: number;
   @Prop({ required: false })
-  examMark: number;
+  finalExamMark: number;
+
+  @Prop({ required: false })
+  averageMark: number;
   @Prop({ type: Types.ObjectId, ref: Subject.name, required: true })
   subjectId: string;
   @Prop({ type: Types.ObjectId, ref: Student.name, required: true })
@@ -29,6 +32,8 @@ export class Progress extends BaseSchema {
   semester: number;
   @Prop({ required: true })
   year: number;
+  @Prop({ required: false })
+  note: string;
 }
 
 export const ProgressSchema = SchemaFactory.createForClass(Progress);
