@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '../../shared/service/base.service';
 import { Progress, ProgressDocument } from '../schema/progress.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, PipelineStage } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { ProgressSortOrder } from '../dto/get-all-progress-tracking.dto';
 import { isEmptyObject } from '../../shared/utils';
 
@@ -12,6 +12,7 @@ export class ProgressTrackingService extends BaseService<Progress> {
     super();
     this.model = progressModel;
   }
+
   async getAllProgressTrackingWithFilter(filter: Partial<Record<keyof Progress, unknown>>, sort: Partial<ProgressSortOrder>, search: string, limit: number, skip: number) {
     const aggregation = this.model
       .aggregate()
@@ -22,7 +23,19 @@ export class ProgressTrackingService extends BaseService<Progress> {
         foreignField: '_id',
         as: 'student',
       })
-      .unwind('student');
+      .unwind('student')
+      .lookup({
+        from: 'subjects',
+        localField: 'subjectId',
+        foreignField: '_id',
+        as: 'subject',
+      })
+      .unwind('subject')
+      .project({
+        __v: 0,
+        studentId: 0,
+        subjectId: 0,
+      });
     const paginationStage: PipelineStage.FacetPipelineStage[] = [
       {
         $skip: skip ? skip : 0,
@@ -51,11 +64,32 @@ export class ProgressTrackingService extends BaseService<Progress> {
       .facet({
         totalRecords: [
           {
-            $count: 'count',
+            $count: 'total',
           },
         ],
         data: paginationStage,
       })
       .exec();
+  }
+
+  async getDetailProgressTracking(id: string) {
+    const aggregation = this.model
+      .aggregate()
+      .match({ _id: new Types.ObjectId(id) })
+      .lookup({
+        from: 'students',
+        localField: 'studentId',
+        foreignField: '_id',
+        as: 'student',
+      })
+      .unwind('student')
+      .lookup({
+        from: 'subjects',
+        localField: 'subjectId',
+        foreignField: '_id',
+        as: 'subject',
+      })
+      .unwind('subject');
+    return aggregation.exec();
   }
 }

@@ -23,6 +23,12 @@ export class Parent extends BaseSchema {
   province?: string;
   @Prop({ required: false })
   country?: string;
+  @Prop({ required: false })
+  gender?: string;
+  @Prop({ required: false })
+  job?: string;
+  @Prop({ required: false })
+  age?: number;
 }
 
 export const ParentSchema = SchemaFactory.createForClass(Parent);

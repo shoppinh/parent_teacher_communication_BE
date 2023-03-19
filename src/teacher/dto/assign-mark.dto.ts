@@ -6,15 +6,19 @@ export class AssignMarkDto extends BaseDto {
   @ApiModelProperty({ required: false })
   @IsNumber()
   @IsOptional()
-  mark15?: number;
+  frequentMark?: number;
   @ApiModelProperty({ required: false })
   @IsNumber()
   @IsOptional()
-  mark45?: string;
+  middleExamMark?: number;
   @ApiModelProperty({ required: false })
   @IsNumber()
   @IsOptional()
-  examMark?: string;
+  finalExamMark?: number;
+  @ApiModelProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  averageMark?: number;
   @ApiModelProperty({ required: true })
   @IsString()
   @IsNotEmpty()
@@ -35,4 +39,8 @@ export class AssignMarkDto extends BaseDto {
   @IsNumber()
   @IsNotEmpty()
   year: number;
+  @ApiModelProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  note?: string;
 }
