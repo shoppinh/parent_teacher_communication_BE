@@ -167,6 +167,13 @@ export class PostService extends BaseService<Post> {
       })
       .unwind('author')
       .lookup({
+        from: 'classes',
+        localField: 'classId',
+        foreignField: '_id',
+        as: 'class',
+      })
+      .unwind('class')
+      .lookup({
         from: 'comments',
         localField: '_id',
         foreignField: 'postId',
@@ -186,6 +193,7 @@ export class PostService extends BaseService<Post> {
           postId: 0,
         },
         authorId: 0,
+        classId: 0,
         reactions: {
           _id: 0,
           __v: 0,
