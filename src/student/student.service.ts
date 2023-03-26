@@ -77,4 +77,10 @@ export class StudentService extends BaseService<Student> {
       })
       .exec();
   }
+  async getAllStudentByClass(classId: string) {
+    return this.model
+      .find({ classId: new Types.ObjectId(classId) })
+      .populate('parentId')
+      .exec();
+  }
 }

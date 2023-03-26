@@ -43,6 +43,8 @@ export class User extends BaseSchema {
 
   @Prop({ required: false })
   lastname: string;
+  @Prop({ required: false })
+  fullname: string;
 
   @Prop({ required: false })
   lastLoggedIn?: Date;

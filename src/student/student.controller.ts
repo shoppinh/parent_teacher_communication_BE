@@ -265,7 +265,7 @@ export class StudentController {
   @HttpCode(HttpStatus.OK)
   async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
-      const { name, age, gender } = studentDto;
+      const { name, age, gender, relationship } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
       // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
       // Check if the student is belonged to the parent
@@ -286,6 +286,7 @@ export class StudentController {
         parentId: parentExisted._id,
         age,
         gender,
+        relationship
         // age: age ? age : studentExisted?.age,
         // gender: gender ? gender : studentExisted?.gender,
       };
@@ -364,7 +365,7 @@ export class StudentController {
   @HttpCode(HttpStatus.OK)
   async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
-      const { classId, name, age, gender } = studentDto;
+      const { classId, name, age, gender, relationship } = studentDto;
       await validateFields({ classId, name }, `common.required_field`, i18n);
 
       //Check parent exists
@@ -384,6 +385,7 @@ export class StudentController {
         classId: new Types.ObjectId(classId),
         age,
         gender,
+        relationship
       };
       const result = await this._studentService.create(studentInstance);
       return new ApiResponse(result);
