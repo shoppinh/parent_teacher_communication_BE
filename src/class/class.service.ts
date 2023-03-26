@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '../shared/service/base.service';
 import { Class, ClassDocument } from './schema/class.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ClassSortOrder } from '../admin/dto/get-all-class.dto';
 import { isEmptyObject } from '../shared/utils';
 import { User } from '../user/schema/user.schema';
@@ -58,4 +58,23 @@ export class ClassService extends BaseService<Class> {
   async getClassListForTeacher(user: User) {}
 
   async getClassListForParent(user: User) {}
+
+  async getStudentListForClass(classId: string) {
+    return this.model
+      .aggregate()
+      .match({
+        _id: new Types.ObjectId(classId),
+      })
+      .lookup({
+        from: 'students',
+        localField: '_id',
+        foreignField: 'classId',
+        as: 'students',
+      })
+      .unwind({
+        path: '$students',
+        preserveNullAndEmptyArrays: true,
+      })
+      .exec();
+  }
 }

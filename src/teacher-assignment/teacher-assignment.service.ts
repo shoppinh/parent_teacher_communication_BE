@@ -112,4 +112,29 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
     //   .populate('classId')
     //   .exec();
   }
+
+  async getTeacherAssignmentListForClass(classId: string) {
+    const aggregation = this.model.aggregate();
+    return aggregation
+      .match({ classId: new Types.ObjectId(classId) })
+      .lookup({
+        from: 'teachers',
+        localField: 'teacherId',
+        foreignField: '_id',
+        as: 'teacher',
+      })
+      .unwind('teacher')
+      .lookup({
+        from: 'subjects',
+        localField: 'subjectId',
+        foreignField: '_id',
+        as: 'subject',
+      })
+      .unwind('subject')
+      .project({
+        teacher: 1,
+        subject: 1,
+      })
+      .exec();
+  }
 }

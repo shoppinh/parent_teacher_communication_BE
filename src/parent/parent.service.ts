@@ -137,4 +137,22 @@ export class ParentService extends BaseService<Parent> {
       .unwind('children')
       .exec();
   }
+
+  async getParentListForClass(classId: string) {
+    const aggregation = this.model.aggregate();
+    return aggregation
+      .lookup({
+        from: 'students',
+        localField: '_id',
+        foreignField: 'parentId',
+        as: 'children',
+      })
+      .unwind('children')
+      .match({ 'children.classId': new Types.ObjectId(classId) })
+      .project({
+        children: 0,
+      })
+
+      .exec();
+  }
 }

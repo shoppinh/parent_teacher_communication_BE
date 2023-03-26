@@ -6,6 +6,7 @@ import { Class, ClassSchema } from './schema/class.schema';
 import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
 import { TeacherModule } from '../teacher/teacher.module';
 import { ParentModule } from '../parent/parent.module';
+import { StudentModule } from '../student/student.module';
 
 @Module({
   controllers: [ClassController],
@@ -21,6 +22,7 @@ import { ParentModule } from '../parent/parent.module';
     TeacherAssignmentModule,
     TeacherModule,
     forwardRef(() => ParentModule),
+    forwardRef(() => StudentModule),
   ],
 })
 export class ClassModule {}

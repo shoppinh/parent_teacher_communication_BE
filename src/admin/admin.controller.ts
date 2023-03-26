@@ -179,7 +179,7 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   async updateUser(@Body() userDto: Partial<AddUserDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
-      const { mobilePhone, username, email, firstName, lastName, isActive, roleKey, password } = userDto;
+      const { mobilePhone, username, email, firstName, lastName, fullName, isActive, roleKey, password } = userDto;
       await validateFields({ id }, `common.required_field`, i18n);
 
       if (mobilePhone && !isPhoneNumberValidation(mobilePhone)) {
@@ -230,6 +230,7 @@ export class AdminController {
         email: email && email.trim(),
         isActive,
         firstname: firstName,
+        fullname: fullName,
         lastname: lastName,
         role: roleKey,
         password: password && (await passwordGenerate(password)),
@@ -466,7 +467,7 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext) {
     try {
-      const { parentId, classId, name, age, gender } = studentDto;
+      const { parentId, classId, name, age, gender, relationship } = studentDto;
       await validateFields({ classId, name }, `common.required_field`, i18n);
 
       //Check parent exists
@@ -486,6 +487,7 @@ export class AdminController {
         classId: new Types.ObjectId(classId),
         age,
         gender,
+        relationship,
       };
       const result = await this._studentService.create(studentInstance);
       return new ApiResponse(result);
@@ -505,7 +507,7 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
-      const { parentId, classId, name, age, gender } = studentDto;
+      const { parentId, classId, name, age, gender, relationship } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
       // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
       if (user.role === ConstantRoles.PARENT) {
@@ -553,6 +555,7 @@ export class AdminController {
         ...(classId && user.role === ConstantRoles.SUPER_USER && { classId: new Types.ObjectId(classId) }),
         age,
         gender,
+        relationship,
         // age: age ? age : studentExisted?.age,
         // gender: gender ? gender : studentExisted?.gender,
       };

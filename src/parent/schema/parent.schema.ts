@@ -29,6 +29,7 @@ export class Parent extends BaseSchema {
   job?: string;
   @Prop({ required: false })
   age?: number;
+
 }
 
 export const ParentSchema = SchemaFactory.createForClass(Parent);

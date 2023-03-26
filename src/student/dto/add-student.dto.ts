@@ -3,9 +3,9 @@ import { ApiModelProperty } from '@nestjs/swagger/dist/decorators/api-model-prop
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class AddStudentDto extends BaseDto {
-  @ApiModelProperty({ required: true })
+  @ApiModelProperty({ required: false })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   parentId: string;
   @ApiModelProperty({ required: true })
   @IsString()
@@ -23,4 +23,8 @@ export class AddStudentDto extends BaseDto {
   @IsString()
   @IsOptional()
   gender?: string;
+  @ApiModelProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
+  relationship: string;
 }
