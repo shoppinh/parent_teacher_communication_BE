@@ -149,8 +149,13 @@ export class ParentService extends BaseService<Parent> {
       })
       .unwind('children')
       .match({ 'children.classId': new Types.ObjectId(classId) })
+      .addFields({
+        'userId.roleId': '$userId.role',
+      })
       .project({
         children: 0,
+        'userId.password': 0,
+        'userId.role': 0,
       })
 
       .exec();

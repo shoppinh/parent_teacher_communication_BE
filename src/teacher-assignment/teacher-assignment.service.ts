@@ -131,9 +131,17 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
         as: 'subject',
       })
       .unwind('subject')
+      .addFields({
+        'teacher.userId.roleId': '$teacher.userId.role',
+      })
       .project({
-        teacher: 1,
-        subject: 1,
+        __v: 0,
+        'teacher.userId.password': 0,
+        'teacher.userId._v': 0,
+        'teacher.userId.role': 0,
+        teacherId: 0,
+        classId: 0,
+        subjectId: 0,
       })
       .exec();
   }
