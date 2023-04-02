@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schema/user.schema';
 import { UserToken, UserTokenSchema } from './schema/user-token.schema';
@@ -9,6 +9,9 @@ import { UserDeviceService } from './service/user-device.service';
 import { UserDevice, UserDeviceSchema } from './schema/user-device.schema';
 import { RoleService } from './service/role.service';
 import { Role, RoleSchema } from './schema/role.schema';
+import { MailsModule } from 'src/mails/mails.module';
+import { TeacherModule } from '../teacher/teacher.module';
+import { ParentModule } from '../parent/parent.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { Role, RoleSchema } from './schema/role.schema';
         schema: RoleSchema,
       },
     ]),
+    MailsModule,
+    forwardRef(() => TeacherModule),
+    forwardRef(() => ParentModule),
   ],
   controllers: [UserController],
   exports: [UserService, UserTokenService, UserDeviceService, RoleService],

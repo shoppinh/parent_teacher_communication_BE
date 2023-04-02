@@ -116,25 +116,12 @@ export class ParentService extends BaseService<Parent> {
         as: 'class',
       })
       .unwind('class')
+      .match({
+        'class.isSchoolClass': false,
+      })
       .project({
         class: 1,
       })
-      .exec();
-  }
-
-  async getProfile(userId: string) {
-    const aggregation = this.model.aggregate().project({
-      'userId.password': 0,
-    });
-    return aggregation
-      .match({ 'userId._id': new Types.ObjectId(userId) })
-      .lookup({
-        from: 'students',
-        localField: '_id',
-        foreignField: 'parentId',
-        as: 'children',
-      })
-      .unwind('children')
       .exec();
   }
 

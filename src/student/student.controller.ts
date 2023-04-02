@@ -260,35 +260,35 @@ export class StudentController {
   // Update student(children) of the parent
   @Put(':id')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT)
+  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
-      const { name, age, gender, relationship } = studentDto;
+      const { name, age, gender, relationship, parentId } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
       // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
       // Check if the student is belonged to the parent
-      const parentExisted = await this._parentService.getParentByUserId(user._id);
-      if (!parentExisted || !parentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-      }
-      const childExisted = await this._studentService.findOne({
-        parentId: parentExisted._id,
-        _id: id,
-      });
-      if (!childExisted || !childExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+      if (user.role === ConstantRoles.PARENT) {
+        const parentExisted = await this._parentService.findById(parentId);
+        if (!parentExisted || !parentExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
+        }
+        const childExisted = await this._studentService.findOne({
+          parentId: parentExisted._id,
+          _id: id,
+        });
+        if (!childExisted || !childExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
+        }
       }
 
       const studentInstance: any = {
         name: name.trim(),
-        parentId: parentExisted._id,
+        parentId: new Types.ObjectId(parentId),
         age,
         gender,
-        relationship
-        // age: age ? age : studentExisted?.age,
-        // gender: gender ? gender : studentExisted?.gender,
+        relationship,
       };
       const result = await this._studentService.update(id, studentInstance);
       return new ApiResponse(result);
@@ -366,7 +366,7 @@ export class StudentController {
   async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
       const { classId, name, age, gender, relationship } = studentDto;
-      await validateFields({ classId, name }, `common.required_field`, i18n);
+      await validateFields({ name }, `common.required_field`, i18n);
 
       //Check parent exists
       const parentExisted = await this._parentService.getParentByUserId(user._id);
@@ -375,17 +375,20 @@ export class StudentController {
       }
 
       //Check class exists
-      const classExisted = await this._classService.findOne({ _id: new Types.ObjectId(classId) });
-      if (!classExisted || !classExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+      if (classId) {
+        const classExisted = await this._classService.findOne({ _id: new Types.ObjectId(classId) });
+        if (!classExisted || !classExisted?._id) {
+          throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
+        }
       }
+
       const studentInstance: any = {
         name: name.trim(),
         parentId: parentExisted._id,
-        classId: new Types.ObjectId(classId),
+        classId: classId ? new Types.ObjectId(classId) : classId,
         age,
         gender,
-        relationship
+        relationship,
       };
       const result = await this._studentService.create(studentInstance);
       return new ApiResponse(result);
@@ -406,6 +409,7 @@ export class StudentController {
   async getAllStudent(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
       const { skip, limit, sort, search } = getAllStudentDto;
+
       //Check parent exists
       const parentExisted = await this._parentService.getParentByUserId(user._id);
       if (!parentExisted || !parentExisted?._id) {
@@ -423,19 +427,49 @@ export class StudentController {
     }
   }
 
+  // Get all student which is not in class
+  @Post('list-without-class/:classId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.TEACHER)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async getAllStudentWithoutClass(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User, @Param('classId') classId: string) {
+    try {
+      // check parent if he/she can access to class
+      // check teacher if he/she can access to class
+      await validateFields({ classId }, `common.required_field`, i18n);
+      const { skip, limit, sort, search } = getAllStudentDto;
+
+      const classExisted = await this._classService.findById(classId);
+      if (!classExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.NOT_FOUND);
+      }
+      const result = await this._studentService.getStudentList(sort, search, limit, skip, { classId: '' });
+      const [{ totalRecords, data }] = result;
+      return new ApiResponse({
+        ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+      });
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
   // Get all student(children) by parent without pagination
   @Get('list-by-parent/:parentId')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllChildren(@I18n() i18n: I18nContext, @Param('parentId') parentId: string) {
+  async getAllChildren(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @Param('parentId') parentId: string) {
     try {
+      const { skip, limit, sort, search } = getAllStudentDto;
       const parentExisted = await this._parentService.findById(parentId);
       if (!parentExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_parent`), HttpStatus.NOT_FOUND);
       }
-      const result = await this._studentService.getStudentList(undefined, undefined, undefined, undefined, { parentId: new Types.ObjectId(parentId) });
+      const result = await this._studentService.getStudentList(sort, search, limit, skip, { parentId: new Types.ObjectId(parentId) });
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
@@ -454,15 +488,17 @@ export class StudentController {
   @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllStudentByClass(@I18n() i18n: I18nContext, @Param('classId') classId: string) {
+  async getAllStudentByClass(@Body() getAllStudentDto: GetAllStudentDto,@I18n() i18n: I18nContext, @Param('classId') classId: string) {
     try {
       // check parent if he/she can access to class
       // check teacher if he/she can access to class
+      const { skip, limit, sort, search } = getAllStudentDto;
+
       const classExisted = await this._classService.findById(classId);
       if (!classExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.NOT_FOUND);
       }
-      const result = await this._studentService.getStudentList(undefined, undefined, undefined, undefined, { classId: new Types.ObjectId(classId) });
+      const result = await this._studentService.getStudentList(sort, search, limit, skip, { classId: new Types.ObjectId(classId) });
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),

@@ -60,18 +60,6 @@ export class TeacherService extends BaseService<Teacher> {
       .exec();
   }
 
-  async getProfile(userId: string) {
-    return this.model
-      .aggregate()
-      .match({
-        'userId._id': new Types.ObjectId(userId),
-      })
-      .project({
-        'userId.password': 0,
-      })
-      .exec();
-  }
-
   async getTeacherByUserId(id: string) {
     return this.model.findOne({ 'userId._id': id }).exec();
   }

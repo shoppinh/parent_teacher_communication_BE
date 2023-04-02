@@ -95,7 +95,6 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
   async getTeacherAssignmentListForTeacher(teacherId: string) {
     const aggregation = this.model.aggregate();
     return aggregation
-      .match({ teacherId: new Types.ObjectId(teacherId) })
       .lookup({
         from: 'classes',
         localField: 'classId',
@@ -103,6 +102,7 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
         as: 'class',
       })
       .unwind('class')
+      .match({ teacherId: new Types.ObjectId(teacherId), 'class.isSchoolClass': false })
       .project({
         class: 1,
       })

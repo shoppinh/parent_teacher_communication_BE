@@ -14,6 +14,8 @@ export class Class extends BaseSchema {
   name: string;
   @Prop({ required: true, default: false })
   isSchoolClass: boolean;
+  @Prop({ required: true, default: false })
+  isPrivateClass: boolean;
 }
 
 export const ClassSchema = SchemaFactory.createForClass(Class);

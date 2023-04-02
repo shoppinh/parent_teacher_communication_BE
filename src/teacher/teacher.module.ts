@@ -20,7 +20,7 @@ import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignmen
         schema: TeacherSchema,
       },
     ]),
-    UserModule,
+    forwardRef(() => UserModule),
     forwardRef(() => StudentModule),
     forwardRef(() => ClassModule),
     ProgressTrackingModule,

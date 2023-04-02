@@ -19,10 +19,10 @@ import { ClassModule } from '../class/class.module';
         schema: ParentSchema,
       },
     ]),
-    UserModule,
+    forwardRef(() => UserModule),
     forwardRef(() => StudentModule),
     ProgressTrackingModule,
-    ClassModule,
+    forwardRef(() => ClassModule),
   ],
 })
 export class ParentModule {}

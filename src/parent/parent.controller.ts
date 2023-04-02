@@ -31,26 +31,6 @@ export class ParentController {
     private readonly _classService: ClassService,
   ) {}
 
-  @Get('profile')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async getProfile(@GetUser() user: User, @I18n() i18n: I18nContext) {
-    try {
-      const userExisted = await this._userService.findById(user._id);
-      if (!userExisted) {
-        throw new HttpException(await i18n.translate(`message.nonexistent_user`), HttpStatus.NOT_FOUND);
-      }
-      const result = await this._parentService.getProfile(user._id);
-      return new ApiResponse(result);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
   @Post('leave-form')
   @ApiBearerAuth()
   @Roles(ConstantRoles.PARENT)

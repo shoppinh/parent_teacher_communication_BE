@@ -14,7 +14,7 @@ export type StudentDocument = Student & Document;
 export class Student extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Parent.name, required: true })
   parentId: Parent;
-  @Prop({ type: Types.ObjectId, ref: Class.name, required: false })
+  @Prop({ type: Types.ObjectId, ref: Class.name, required: true })
   classId: Class;
   @Prop({ required: true })
   name: string;
