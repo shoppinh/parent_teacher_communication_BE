@@ -26,6 +26,7 @@ import { PushNotificationModule } from './push-notification/push-notification.mo
 import { ProgressTrackingModule } from './progress-tracking/progress-tracking.module';
 import { StudentModule } from './student/student.module';
 import { FileModule } from './file/file.module';
+import { MailsModule } from './mails/mails.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { FileModule } from './file/file.module';
     ProgressTrackingModule,
     StudentModule,
     FileModule,
+    MailsModule,
   ],
   controllers: [AppController],
   providers: [

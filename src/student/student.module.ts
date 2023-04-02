@@ -20,7 +20,7 @@ import { ProgressTrackingModule } from '../progress-tracking/progress-tracking.m
         schema: StudentSchema,
       },
     ]),
-    ClassModule,
+    forwardRef(() => ClassModule),
     forwardRef(() => ParentModule),
     forwardRef(() => TeacherModule),
     TeacherAssignmentModule,

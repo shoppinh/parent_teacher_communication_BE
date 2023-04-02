@@ -20,7 +20,7 @@ import { StudentModule } from '../student/student.module';
       },
     ]),
     TeacherAssignmentModule,
-    TeacherModule,
+    forwardRef(() => TeacherModule),
     forwardRef(() => ParentModule),
     forwardRef(() => StudentModule),
   ],

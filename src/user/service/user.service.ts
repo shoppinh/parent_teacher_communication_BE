@@ -56,4 +56,7 @@ export class UserService extends BaseService<User> {
       })
       .exec();
   }
+  async sendInvitation(email: string, user: User) {
+    console.log('sendInvitation');
+  }
 }

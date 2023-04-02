@@ -12,4 +12,9 @@ export class AddClassDto extends BaseDto {
   @IsBoolean()
   @IsNotEmpty()
   isSchoolClass: boolean;
+
+  @ApiModelProperty({ required: false })
+  @IsBoolean()
+  @IsNotEmpty()
+  isPrivateClass: boolean;
 }
