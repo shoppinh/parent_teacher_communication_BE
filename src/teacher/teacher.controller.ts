@@ -276,7 +276,7 @@ export class TeacherController {
       }
 
       const studentInstance = {
-        classId: classId,
+        classId: new Types.ObjectId(classId),
       };
       const result = await this._studentService.update(studentId, studentInstance);
       return new ApiResponse(result);
@@ -296,13 +296,13 @@ export class TeacherController {
     // Only teacher who is class admin can remove student from class, but will check later
     try {
       const { studentId, classId } = removeOrAssignStudentDto;
-      const studentExisted = await this._studentService.findOne({ _id: studentId, classId: classId });
+      const studentExisted = await this._studentService.findOne({ _id: new Types.ObjectId(studentId) });
       if (!studentExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_student`), HttpStatus.NOT_FOUND);
       }
 
       const studentInstance = {
-        classId: '',
+        classId: new Types.ObjectId(classId),
       };
       const result = await this._studentService.update(studentId, studentInstance);
       return new ApiResponse(result);
