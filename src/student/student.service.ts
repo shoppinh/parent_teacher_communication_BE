@@ -17,7 +17,6 @@ export class StudentService extends BaseService<Student> {
   async getStudentList(sort?: Partial<StudentSortOrder>, search?: string, limit?: number, skip?: number, filter?: Partial<Record<keyof Student, unknown>>) {
     const aggregation = this.model
       .aggregate()
-      .match(filter ? filter : {})
       .lookup({
         from: 'parents',
         localField: 'parentId',
@@ -31,7 +30,8 @@ export class StudentService extends BaseService<Student> {
         foreignField: '_id',
         as: 'class',
       })
-      .unwind('class');
+      .unwind('class')
+      .match(filter ? filter : {});
     const paginationStage: PipelineStage.FacetPipelineStage[] = [
       {
         $skip: skip ? skip : 0,
@@ -77,10 +77,67 @@ export class StudentService extends BaseService<Student> {
       })
       .exec();
   }
+
   async getAllStudentByClass(classId: string) {
     return this.model
       .find({ classId: new Types.ObjectId(classId) })
       .populate('parentId')
+      .exec();
+  }
+
+  async getStudentListWithoutClass(sort?: Partial<StudentSortOrder>, search?: string, limit?: number, skip?: number) {
+    const aggregation = this.model
+      .aggregate()
+      .lookup({
+        from: 'parents',
+        localField: 'parentId',
+        foreignField: '_id',
+        as: 'parent',
+      })
+      .unwind('parent')
+      .lookup({
+        from: 'classes',
+        localField: 'classId',
+        foreignField: '_id',
+        as: 'class',
+      })
+      .unwind('class')
+      .match({
+        'class.isSchoolClass': true,
+      });
+    const paginationStage: PipelineStage.FacetPipelineStage[] = [
+      {
+        $skip: skip ? skip : 0,
+      },
+    ];
+    if (search) {
+      aggregation.match({
+        $or: [
+          {
+            name: { $eq: search },
+          },
+        ],
+      });
+    }
+
+    if (limit) {
+      paginationStage.push({
+        $limit: limit,
+      });
+    }
+
+    if (sort && !isEmptyObject(sort)) {
+      aggregation.sort(sort).collation({ locale: 'en' });
+    }
+    return aggregation
+      .facet({
+        totalRecords: [
+          {
+            $count: 'total',
+          },
+        ],
+        data: paginationStage,
+      })
       .exec();
   }
 }

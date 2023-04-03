@@ -22,6 +22,7 @@ import { TeacherService } from '../teacher/teacher.service';
 import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
 import { GetAllLeaveForm } from '../progress-tracking/dto/get-all-leave-form.dto';
 import { GetAllProgressDto } from '../progress-tracking/dto/get-all-progress-tracking.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
 
 @ApiTags('Student')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -263,9 +264,9 @@ export class StudentController {
   @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
+  async updateStudent(@Body() studentDto: UpdateStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
-      const { name, age, gender, relationship, parentId } = studentDto;
+      const { name, age, gender, relationship, parentId, classId } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
       // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
       // Check if the student is belonged to the parent
@@ -285,7 +286,8 @@ export class StudentController {
 
       const studentInstance: any = {
         name: name.trim(),
-        parentId: new Types.ObjectId(parentId),
+        ...(parentId && { parentId: new Types.ObjectId(parentId) }),
+        ...(classId && { classId: new Types.ObjectId(classId) }),
         age,
         gender,
         relationship,
@@ -427,24 +429,18 @@ export class StudentController {
     }
   }
 
-  // Get all student which is not in class
-  @Post('list-without-class/:classId')
+  // Get all student which is not assigned to class
+  @Post('unassigned-student-list')
   @ApiBearerAuth()
   @Roles(ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllStudentWithoutClass(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User, @Param('classId') classId: string) {
+  async getAllStudentWithoutClass(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext) {
     try {
       // check parent if he/she can access to class
       // check teacher if he/she can access to class
-      await validateFields({ classId }, `common.required_field`, i18n);
       const { skip, limit, sort, search } = getAllStudentDto;
-
-      const classExisted = await this._classService.findById(classId);
-      if (!classExisted) {
-        throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.NOT_FOUND);
-      }
-      const result = await this._studentService.getStudentList(sort, search, limit, skip, { classId: '' });
+      const result = await this._studentService.getStudentListWithoutClass(sort, search, limit, skip);
       const [{ totalRecords, data }] = result;
       return new ApiResponse({
         ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
@@ -488,7 +484,7 @@ export class StudentController {
   @Roles(ConstantRoles.SUPER_USER, ConstantRoles.PARENT, ConstantRoles.TEACHER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getAllStudentByClass(@Body() getAllStudentDto: GetAllStudentDto,@I18n() i18n: I18nContext, @Param('classId') classId: string) {
+  async getAllStudentByClass(@Body() getAllStudentDto: GetAllStudentDto, @I18n() i18n: I18nContext, @Param('classId') classId: string) {
     try {
       // check parent if he/she can access to class
       // check teacher if he/she can access to class

@@ -1,20 +1,20 @@
 import { BaseDto } from '../../shared/dto/base.dto';
 import { ApiModelProperty } from '@nestjs/swagger/dist/decorators/api-model-property.decorator';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class AddStudentDto extends BaseDto {
-  @ApiModelProperty({ required: true })
+export class UpdateStudentDto extends BaseDto {
+  @ApiModelProperty({ required: false })
   @IsString()
   @IsOptional()
-  parentId: string;
-  @ApiModelProperty({ required: true })
+  parentId?: string;
+  @ApiModelProperty({ required: false })
   @IsString()
-  @IsNotEmpty()
-  classId: string;
-  @ApiModelProperty({ required: true })
+  @IsOptional()
+  classId?: string;
+  @ApiModelProperty({ required: false })
   @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsOptional()
+  name?: string;
   @ApiModelProperty({ required: false })
   @IsNumber()
   @IsOptional()
@@ -23,8 +23,8 @@ export class AddStudentDto extends BaseDto {
   @IsString()
   @IsOptional()
   gender?: string;
-  @ApiModelProperty({ required: true })
+  @ApiModelProperty({ required: false })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   relationship: string;
 }
