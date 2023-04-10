@@ -1,6 +1,6 @@
 import { BaseDto } from '../../shared/dto/base.dto';
 import { ApiModelProperty } from '@nestjs/swagger/dist/decorators/api-model-property.decorator';
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class AddEventDto extends BaseDto {
   @ApiModelProperty({ required: true })
@@ -10,20 +10,20 @@ export class AddEventDto extends BaseDto {
   @ApiModelProperty({ required: true })
   @IsString()
   @IsNotEmpty()
-  date: string;
+  start: string;
   @ApiModelProperty({ required: true })
   @IsString()
   @IsNotEmpty()
-  startTime: string;
-  @ApiModelProperty({ required: true })
-  @IsString()
-  @IsNotEmpty()
-  endTime: string;
+  end: string;
   @ApiModelProperty({ required: false })
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty()
   participants: string[];
+  @ApiModelProperty({ required: true, default: false })
+  @IsBoolean()
+  @IsNotEmpty()
+  isAllDay: boolean;
   @ApiModelProperty({ required: true })
   @IsString()
   @IsOptional()
