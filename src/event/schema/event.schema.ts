@@ -15,14 +15,14 @@ export class Event extends BaseSchema {
   title: string;
   @Prop({ type: String, required: true })
   content: string;
-  @Prop({ type: Date, required: true })
-  date: string;
   @Prop({ type: String, required: true })
-  startTime: string;
+  start: string;
   @Prop({ type: String, required: true })
-  endTime: string;
+  end: string;
   @Prop([{ type: Types.ObjectId, ref: User.name }])
   participants: string[];
+  @Prop([{ type: Boolean, required: true, default: false }])
+  isAllDay: boolean;
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);

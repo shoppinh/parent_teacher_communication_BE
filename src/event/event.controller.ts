@@ -8,10 +8,12 @@ import { ApiException } from '../shared/type/api-exception.model';
 import { GetAllEventDto } from './dto/get-all-event.dto';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import { AddEventDto } from './dto/add-event.dto';
-import { validateFields } from '../shared/utils';
+import { toListResponse, validateFields } from '../shared/utils';
 import { EventService } from './event.service';
 import { ApiResponse } from '../shared/response/api-response';
 import { Types } from 'mongoose';
+import { GetUser } from 'src/shared/decorator/current-user.decorator';
+import { User } from 'src/user/schema/user.schema';
 
 @ApiTags('Event')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -26,10 +28,20 @@ export class EventController {
   @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async getEventList(@Body() getAllEventDto: GetAllEventDto, @I18n() i18n: I18nContext) {
+  async getEventList(@Body() getAllEventDto: GetAllEventDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
     try {
       const { skip, sort, limit, search } = getAllEventDto;
-      return this._eventService.getEventList(sort, search, skip, limit);
+      if (user.role === ConstantRoles.PARENT) {
+        const [{ totalRecords, data }] = await this._eventService.getEventListByParent(sort, search, limit, skip, user._id);
+        return new ApiResponse({
+          ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+        });
+      } else {
+        const [{ totalRecords, data }] = await this._eventService.getEventList(sort, search, limit, skip);
+        return new ApiResponse({
+          ...toListResponse([data, totalRecords?.[0]?.total ?? 0]),
+        });
+      }
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
@@ -65,18 +77,18 @@ export class EventController {
   @HttpCode(HttpStatus.OK)
   async addEvent(@Body() addEventDto: AddEventDto, @I18n() i18n: I18nContext) {
     try {
-      const { title, content, date, startTime, endTime, participants } = addEventDto;
-      await validateFields({ title, date, startTime, endTime, participants }, `common.required_field`, i18n);
+      const { title, content, start, end, participants, isAllDay } = addEventDto;
+      await validateFields({ title, start, end, participants, isAllDay }, `common.required_field`, i18n);
       const mappedParticipants = participants.map((item) => {
         return new Types.ObjectId(item);
       });
       const eventInstance = {
         title,
         content,
-        date,
-        startTime,
-        endTime,
+        start,
+        end,
         participants: mappedParticipants,
+        isAllDay,
       };
 
       const result = await this._eventService.create(eventInstance);
@@ -95,7 +107,7 @@ export class EventController {
   @HttpCode(HttpStatus.OK)
   async editEvent(@Body() addEventDto: Partial<AddEventDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
-      const { title, content, date, startTime, endTime, participants } = addEventDto;
+      const { title, content, start, end, participants, isAllDay } = addEventDto;
       await validateFields({ id }, `common.required_field`, i18n);
       const existedEvent = await this._eventService.findById(id);
       if (!existedEvent) {
@@ -108,10 +120,10 @@ export class EventController {
       const eventInstance = {
         title,
         content,
-        date,
-        startTime,
-        endTime,
+        start,
+        end,
         participants: mappedParticipants,
+        isAllDay,
       };
 
       const result = await this._eventService.update(id, eventInstance);

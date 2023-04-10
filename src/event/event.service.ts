@@ -17,17 +17,16 @@ export class EventService extends BaseService<Event> {
   }
 
   createEventParticipantRelationAggregation() {
-    return this.model
-      .aggregate()
-      .lookup({
-        from: 'users',
-        localField: 'participants',
-        foreignField: '_id',
-        as: 'participants',
-      })
-      .project({
-        'participants.password': 0,
-      });
+    return this.model.aggregate();
+    // .lookup({
+    //   from: 'users',
+    //   localField: 'participants',
+    //   foreignField: '_id',
+    //   as: 'participants',
+    // })
+    // .project({
+    //   'participants.password': 0,
+    // });
   }
 
   async getEventList(sort: Partial<EventSortOrder>, search: string, limit: number, skip: number) {
@@ -82,5 +81,50 @@ export class EventService extends BaseService<Event> {
         'participants.password': 0,
       });
     return aggregation.exec();
+  }
+
+  async getEventListByParent(sort: Partial<EventSortOrder>, search: string, limit: number, skip: number, parentId: string) {
+    const aggregation = this.createEventParticipantRelationAggregation();
+    const paginationStage = [];
+    if (search) {
+      aggregation.match({
+        $or: [
+          {
+            title: { $eq: search },
+          },
+        ],
+      });
+    }
+    if (skip) {
+      paginationStage.push({
+        $skip: skip,
+      });
+    }
+    if (limit) {
+      paginationStage.push({
+        $limit: limit,
+      });
+    }
+
+    if (sort && !isEmptyObject(sort)) {
+      aggregation.sort(sort).collation({ locale: 'en' });
+    }
+    aggregation.match({
+      participants: {
+        $elemMatch: {
+          _id: new Types.ObjectId(parentId),
+        },
+      },
+    });
+    return aggregation
+      .facet({
+        totalRecords: [
+          {
+            $count: 'total',
+          },
+        ],
+        data: paginationStage,
+      })
+      .exec();
   }
 }
