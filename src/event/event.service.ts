@@ -110,11 +110,7 @@ export class EventService extends BaseService<Event> {
       aggregation.sort(sort).collation({ locale: 'en' });
     }
     aggregation.match({
-      participants: {
-        $elemMatch: {
-          _id: new Types.ObjectId(parentId),
-        },
-      },
+      participants: new Types.ObjectId(parentId),
     });
     return aggregation
       .facet({

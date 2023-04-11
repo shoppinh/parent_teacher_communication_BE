@@ -77,8 +77,8 @@ export class EventController {
   @HttpCode(HttpStatus.OK)
   async addEvent(@Body() addEventDto: AddEventDto, @I18n() i18n: I18nContext) {
     try {
-      const { title, content, start, end, participants, isAllDay } = addEventDto;
-      await validateFields({ title, start, end, participants, isAllDay }, `common.required_field`, i18n);
+      const { title, content, start, end, participants, allDay } = addEventDto;
+      await validateFields({ title, start, end, participants }, `common.required_field`, i18n);
       const mappedParticipants = participants.map((item) => {
         return new Types.ObjectId(item);
       });
@@ -88,7 +88,7 @@ export class EventController {
         start,
         end,
         participants: mappedParticipants,
-        isAllDay,
+        allDay,
       };
 
       const result = await this._eventService.create(eventInstance);
@@ -107,7 +107,7 @@ export class EventController {
   @HttpCode(HttpStatus.OK)
   async editEvent(@Body() addEventDto: Partial<AddEventDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
-      const { title, content, start, end, participants, isAllDay } = addEventDto;
+      const { title, content, start, end, participants, allDay } = addEventDto;
       await validateFields({ id }, `common.required_field`, i18n);
       const existedEvent = await this._eventService.findById(id);
       if (!existedEvent) {
@@ -123,7 +123,7 @@ export class EventController {
         start,
         end,
         participants: mappedParticipants,
-        isAllDay,
+        allDay,
       };
 
       const result = await this._eventService.update(id, eventInstance);
