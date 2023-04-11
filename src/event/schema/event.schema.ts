@@ -13,7 +13,7 @@ export type EventDocument = Event & Document;
 export class Event extends BaseSchema {
   @Prop({ type: String, required: true })
   title: string;
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   content: string;
   @Prop({ type: String, required: true })
   start: string;
@@ -21,8 +21,8 @@ export class Event extends BaseSchema {
   end: string;
   @Prop([{ type: Types.ObjectId, ref: User.name }])
   participants: string[];
-  @Prop([{ type: Boolean, required: true, default: false }])
-  isAllDay: boolean;
+  @Prop({ type: Boolean, required: true, default: false })
+  allDay: boolean;
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);

@@ -23,7 +23,7 @@ export class AddEventDto extends BaseDto {
   @ApiModelProperty({ required: true, default: false })
   @IsBoolean()
   @IsNotEmpty()
-  isAllDay: boolean;
+  allDay: boolean;
   @ApiModelProperty({ required: true })
   @IsString()
   @IsOptional()
