@@ -4,5 +4,6 @@
   "unauthorized": "These credentials do not match our records",
   "phone_invalid_field": "The phone number is invalid",
   "logout_success": "You have been successfully logged out",
-  "account_not_existed": "This account does not exist"
+  "account_not_existed": "This account does not exist",
+  "password_same": "The new password must be different from the old password"
 }

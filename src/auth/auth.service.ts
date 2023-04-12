@@ -124,6 +124,7 @@ export class AuthService {
         isRemember,
         isActive: user.isActive,
         lastLoggedIn: lastLoggedInDate,
+        fullname: user.fullname,
       };
     } catch (e) {
       console.log('🚀 ~ file: auth.service.ts:127 ~ AuthService ~ login ~ e', e);
