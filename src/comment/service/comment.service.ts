@@ -20,6 +20,15 @@ export class CommentService extends BaseService<Comment> {
   async getAllCommentByPostId(postId: string) {
     const aggregation = this.model
       .aggregate()
+      .lookup({
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'userId',
+      })
+      .unwind({
+        path: '$userId',
+      })
       .match({
         postId: new Types.ObjectId(postId),
       })

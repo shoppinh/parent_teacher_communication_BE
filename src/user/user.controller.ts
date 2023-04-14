@@ -75,13 +75,14 @@ export class UserController {
       });
     }
   }
+
   @Put('profile')
   @ApiBearerAuth()
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async updateProfile(@GetUser() user: User, @Body() userDto: Partial<AddUserDto>, @I18n() i18n: I18nContext) {
     try {
-      const { mobilePhone, username, email, firstName, lastName, fullName, isActive, roleKey, password } = userDto;
+      const { mobilePhone, username, email, firstName, lastName, fullName, isActive, roleKey, password, avatar } = userDto;
 
       if (mobilePhone && !isPhoneNumberValidation(mobilePhone)) {
         throw new HttpException(await i18n.translate(`user.phone_invalid_field`), HttpStatus.BAD_REQUEST);
@@ -115,9 +116,11 @@ export class UserController {
           );
         }
       }
-      const newPassword = await passwordGenerate(password);
-      if (password && newPassword === user.password) {
-        throw new HttpException(await i18n.translate(`user.password_same`), HttpStatus.BAD_REQUEST);
+      let newPassword;
+
+      if (password) {
+        const newPassword = await passwordGenerate(password);
+        if (newPassword === user.password) throw new HttpException(await i18n.translate(`user.password_same`), HttpStatus.BAD_REQUEST);
       }
       //User need to update
 
@@ -130,7 +133,8 @@ export class UserController {
         fullname: fullName,
         lastname: lastName,
         role: roleKey,
-        password: password && newPassword,
+        password: newPassword ? newPassword : password,
+        avatar,
       };
       const result = await this._userService.update(user._id, userInstance);
       return new ApiResponse(result);

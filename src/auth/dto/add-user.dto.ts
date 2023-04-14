@@ -3,6 +3,11 @@ import { ConstantRoles } from '../../shared/utils/constant/role';
 import { BaseDto } from '../../shared/dto/base.dto';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export class AddUserDto extends BaseDto {
+  @ApiModelProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  avatar?: string;
+
   @ApiModelProperty({ required: true })
   @IsString()
   @IsNotEmpty()
