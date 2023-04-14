@@ -180,25 +180,40 @@ export class PostService extends BaseService<Post> {
         as: 'comments',
       })
       .lookup({
+        from: 'users',
+        localField: 'comments.userId',
+        foreignField: '_id',
+        as: 'commentitems',
+      })
+      .lookup({
         from: 'postreactions',
         localField: '_id',
         foreignField: 'postId',
         as: 'reactions',
       })
       .project({
-        __v: 0,
         comments: {
-          _id: 0,
-          __v: 0,
-          postId: 0,
+          $map: {
+            input: '$comments',
+            in: {
+              _id: '$$this._id',
+              userId: {
+                $arrayElemAt: ['$commentitems', { $indexOfArray: ['$commentitems._id', '$$this.userId'] }],
+              },
+              content: '$$this.content',
+              createdAt: '$$this.createdAt',
+            },
+          },
         },
-        authorId: 0,
-        classId: 0,
-        reactions: {
-          _id: 0,
-          __v: 0,
-          postId: 0,
-        },
+        content: 1,
+        description: 1,
+        title: 1,
+        attachments: 1,
+        reactions: 1,
+        author: 1,
+        class: 1,
+        createdAt: 1,
+        updatedAt: 1,
       });
     if (search) {
       aggregation.match({
