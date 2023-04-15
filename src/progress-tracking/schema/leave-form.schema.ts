@@ -19,8 +19,12 @@ export class LeaveForm extends BaseSchema {
   classId: string;
   @Prop({ required: true })
   reason: string;
+  @Prop({ required: true })
+  title: string;
   @Prop({ required: true, enum: ConstantLeaveFormStatus, default: ConstantLeaveFormStatus.PENDING })
   status: string;
+  @Prop({ required: true })
+  leaveDate: Date;
 }
 
 export const LeaveFormSchema = SchemaFactory.createForClass(LeaveForm);

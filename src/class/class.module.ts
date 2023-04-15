@@ -7,6 +7,7 @@ import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignmen
 import { TeacherModule } from '../teacher/teacher.module';
 import { ParentModule } from '../parent/parent.module';
 import { StudentModule } from '../student/student.module';
+import { ProgressTrackingModule } from '../progress-tracking/progress-tracking.module';
 
 @Module({
   controllers: [ClassController],
@@ -23,6 +24,7 @@ import { StudentModule } from '../student/student.module';
     forwardRef(() => TeacherModule),
     forwardRef(() => ParentModule),
     forwardRef(() => StudentModule),
+    ProgressTrackingModule,
   ],
 })
 export class ClassModule {}

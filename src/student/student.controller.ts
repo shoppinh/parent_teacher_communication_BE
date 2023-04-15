@@ -153,7 +153,7 @@ export class StudentController {
       }
 
       const teacherAssignmentExisted = await this._teacherAssignmentService.findOne({
-        classId,
+        classId: new Types.ObjectId(classId),
         teacherId: teacherExisted._id,
       });
       if (!teacherAssignmentExisted || !teacherAssignmentExisted?._id) {
