@@ -13,8 +13,9 @@ import { TeacherService } from '../teacher/teacher.service';
 import { ParentService } from '../parent/parent.service';
 import { ApiResponse } from '../shared/response/api-response';
 import { toListResponse, validateFields } from '../shared/utils';
-import { Types } from 'mongoose';
 import { StudentService } from '../student/student.service';
+import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
+import { Types } from 'mongoose';
 
 @ApiTags('Class')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -28,6 +29,7 @@ export class ClassController {
     private readonly _teacherService: TeacherService,
     private readonly _parentService: ParentService,
     private readonly _studentService: StudentService,
+    private readonly _leaveFormService: LeaveFormService,
   ) {}
 
   @Get('list-by-role')
@@ -77,12 +79,13 @@ export class ClassController {
       const teacherAssignmentList = await this._teacherAssignmentService.getTeacherAssignmentListForClass(classId);
       const parentList = await this._parentService.getParentListForClass(classId);
       const studentList = await this._studentService.getAllStudentByClass(classId);
-
+      const [{ data: leaveFormList }] = await this._leaveFormService.getAllLeaveFormWithFilter({ classId: new Types.ObjectId(classId) });
       return new ApiResponse({
         classInfo: classExisted,
         teacherAssignments: teacherAssignmentList,
         parents: parentList,
         students: studentList,
+        leaveForm: leaveFormList,
       });
     } catch (error) {
       console.log('error', error);

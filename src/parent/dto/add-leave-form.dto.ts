@@ -15,4 +15,12 @@ export class AddLeaveFormDto extends BaseDto {
   @IsString()
   @IsNotEmpty()
   reason: string;
+  @ApiModelProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+  @ApiModelProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
+  leaveDate: string;
 }

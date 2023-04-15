@@ -16,6 +16,7 @@ import { LeaveFormService } from '../progress-tracking/service/leave-form.servic
 import { validateFields } from '../shared/utils';
 import { StudentService } from '../student/student.service';
 import { ClassService } from '../class/class.service';
+import { Types } from 'mongoose';
 
 @ApiTags('Parent')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -38,7 +39,7 @@ export class ParentController {
   @HttpCode(HttpStatus.OK)
   async submitLeaveForm(@Body() addLeaveFormDto: AddLeaveFormDto, @GetUser() user: User, @I18n() i18n: I18nContext) {
     try {
-      const { studentId, classId, reason } = addLeaveFormDto;
+      const { studentId, classId, reason, title, leaveDate } = addLeaveFormDto;
       await validateFields({ classId, reason, studentId }, `common.required_field`, i18n);
       const studentExisted = await this._studentService.findById(studentId);
       if (!studentExisted) {
@@ -48,7 +49,14 @@ export class ParentController {
       if (!classExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_class`), HttpStatus.NOT_FOUND);
       }
-      const result = await this._leaveFormService.create(addLeaveFormDto);
+      const leaveFormInstance = {
+        studentId: new Types.ObjectId(studentId),
+        classId: new Types.ObjectId(classId),
+        reason,
+        title,
+        leaveDate: new Date(leaveDate),
+      };
+      const result = await this._leaveFormService.create(leaveFormInstance);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {

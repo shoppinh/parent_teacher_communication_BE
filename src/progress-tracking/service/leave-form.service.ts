@@ -13,7 +13,7 @@ export class LeaveFormService extends BaseService<LeaveForm> {
     this.model = leaveFormModel;
   }
 
-  async getAllLeaveFormWithFilter(filter: Partial<Record<keyof LeaveForm, unknown>>, sort: Partial<LeaveFormSortOrder>, search: string, limit: number, skip: number) {
+  async getAllLeaveFormWithFilter(filter: Partial<Record<keyof LeaveForm, unknown>>, sort?: Partial<LeaveFormSortOrder>, search?: string, limit?: number, skip?: number) {
     const aggregation = this.model
       .aggregate()
       .match(filter)
@@ -21,9 +21,9 @@ export class LeaveFormService extends BaseService<LeaveForm> {
         from: 'students',
         localField: 'studentId',
         foreignField: '_id',
-        as: 'user',
+        as: 'student',
       })
-      .unwind('user')
+      .unwind('student')
       .lookup({
         from: 'classes',
         localField: 'classId',
@@ -59,7 +59,7 @@ export class LeaveFormService extends BaseService<LeaveForm> {
       .facet({
         totalRecords: [
           {
-            $count: 'count',
+            $count: 'total',
           },
         ],
         data: paginationStage,
