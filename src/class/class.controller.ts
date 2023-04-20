@@ -51,7 +51,7 @@ export class ClassController {
           ...toListResponse([classExisted, classExisted.length ?? 0]),
         });
       } else {
-        const classExisted = await this._classService.findAll({ isSchoolClass: false });
+        const classExisted = await this._classService.findAll({});
         return new ApiResponse({
           ...toListResponse([classExisted, classExisted.length ?? 0]),
         });
