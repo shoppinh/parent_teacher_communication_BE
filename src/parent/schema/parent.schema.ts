@@ -1,6 +1,6 @@
-import { BaseSchema } from 'src/shared/schema/base.schema';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
+import { BaseSchema } from 'src/shared/schema/base.schema';
 import { User, UserSchema } from '../../user/schema/user.schema';
 
 export type ParentDocument = Parent & Document;
@@ -29,7 +29,6 @@ export class Parent extends BaseSchema {
   job?: string;
   @Prop({ required: false })
   age?: number;
-
 }
 
 export const ParentSchema = SchemaFactory.createForClass(Parent);

@@ -125,6 +125,13 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
       })
       .unwind('teacher')
       .lookup({
+        from: 'users',
+        localField: 'teacher.userId._id',
+        foreignField: '_id',
+        as: 'teacher.userId',
+      })
+      .unwind('teacher.userId')
+      .lookup({
         from: 'subjects',
         localField: 'subjectId',
         foreignField: '_id',
