@@ -20,28 +20,31 @@ export class TeacherAssignmentService extends BaseService<TeacherAssignment> {
         from: 'teachers',
         localField: 'teacherId',
         foreignField: '_id',
-        as: 'teacher',
+        as: 'teacherId',
       })
-      .unwind('teacher');
+      .unwind('teacherId');
   }
 
   async getTeacherAssignmentList(sort: Partial<TeacherAssignmentSortOrder>, search: string, limit: number, skip: number) {
     const aggregation = this.createTeacherAssignmentRelationAggregation();
     aggregation
+      .match({
+        isSchoolAssign: false,
+      })
       .lookup({
         from: 'classes',
         localField: 'classId',
         foreignField: '_id',
-        as: 'class',
+        as: 'classId',
       })
-      .unwind('class')
+      .unwind('classId')
       .lookup({
         from: 'subjects',
         localField: 'subjectId',
         foreignField: '_id',
-        as: 'subject',
+        as: 'subjectId',
       })
-      .unwind('subject');
+      .unwind('subjectId');
     const paginationStage = [];
     if (search) {
       aggregation.match({

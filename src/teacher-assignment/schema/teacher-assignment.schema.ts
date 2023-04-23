@@ -15,12 +15,14 @@ export type TeacherAssignmentDocument = TeacherAssignment & Document;
 export class TeacherAssignment extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Teacher.name, required: true })
   teacherId: Teacher;
-  @Prop({ type: Types.ObjectId, ref: Subject.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Subject.name, required: false })
   subjectId: Subject;
   @Prop({ type: Types.ObjectId, ref: Class.name, required: true })
   classId: Class;
   @Prop({ required: true, default: false })
   isClassAdmin: boolean;
+  @Prop({ required: true, default: false })
+  isSchoolAssign: boolean;
 }
 
 export const TeacherAssignmentSchema = SchemaFactory.createForClass(TeacherAssignment);

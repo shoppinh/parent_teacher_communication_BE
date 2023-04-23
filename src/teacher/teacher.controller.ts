@@ -263,7 +263,7 @@ export class TeacherController {
 
   @Post('assign-student')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.TEACHER)
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async assignStudent(@Body() removeOrAssignStudentDto: RemoveOrAssignStudentDto, @I18n() i18n: I18nContext) {
@@ -289,7 +289,7 @@ export class TeacherController {
 
   @Post('remove-student')
   @ApiBearerAuth()
-  @Roles(ConstantRoles.TEACHER)
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
   async removeStudent(@Body() removeOrAssignStudentDto: RemoveOrAssignStudentDto, @I18n() i18n: I18nContext) {

@@ -1,6 +1,5 @@
-import { Controller, Get, HttpCode, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
-import { JwtGuard } from '../auth/guard/jwt-auth.guard';
 import { ApiException } from '../shared/type/api-exception.model';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import { ClassService } from '../class/class.service';
