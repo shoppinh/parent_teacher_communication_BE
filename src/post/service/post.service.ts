@@ -159,6 +159,9 @@ export class PostService extends BaseService<Post> {
       .match({
         classId: new Types.ObjectId(id),
       })
+      .sort({
+        createdAt: -1,
+      })
       .lookup({
         from: 'users',
         localField: 'authorId',
