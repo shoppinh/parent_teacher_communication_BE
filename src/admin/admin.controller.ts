@@ -368,7 +368,7 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateParent(@Body() parentDto: AddParentDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+  async updateParent(@Body() parentDto: Partial<AddParentDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
       const { address, gender, age, job, ward, district, province, country, ...userDto } = parentDto;
       await validateFields({ id, email: userDto.email }, `common.required_field`, i18n);
@@ -389,8 +389,26 @@ export class AdminController {
       if (userExistedPhone && userDto.mobilePhone !== userExistedPhone.mobilePhone && userExistedPhone?._id) {
         throw new HttpException(await i18n.translate('message.existed_phone_number'), HttpStatus.CONFLICT);
       }
+      let hashPassword = '';
+      if (userDto.password) {
+        hashPassword = await passwordGenerate(userDto.password);
+      }
 
-      await this._userService.update(existedParent.userId._id, userDto);
+      const userInstance: any = {
+        mobilePhone: userDto.mobilePhone,
+        username: userDto.username,
+        email: userDto.email,
+        isActive: userDto.isActive,
+        firstname: userDto.firstName,
+        lastname: userDto.lastName,
+        fullname: userDto.fullName,
+        avatar: userDto.avatar,
+        role: userDto.roleKey,
+        ...(userDto.password && { password: hashPassword }),
+      };
+      // TODO: Replace nested user in parent document to user objectId
+
+      const updatedUser = await this._userService.update(existedParent.userId._id, userInstance);
       const parentInstance: any = {
         address,
         ward,
@@ -400,7 +418,7 @@ export class AdminController {
         job,
         gender,
         age,
-        userId: existedParent.userId._id,
+        userId: updatedUser,
       };
       const result = await this._parentService.update(id, parentInstance, 'userId');
       return new ApiResponse(result);
@@ -438,7 +456,7 @@ export class AdminController {
 
   // Student Controller Collection
   // Get all student(children)
-  @Post('list')
+  @Post('/student/list')
   @ApiBearerAuth()
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
@@ -505,7 +523,7 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
+  async updateStudent(@Body() studentDto: Partial<AddStudentDto>, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
     try {
       const { parentId, classId, name, age, gender, relationship } = studentDto;
       await validateFields({ id }, `common.required_field`, i18n);
@@ -704,7 +722,7 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateClass(@Body() classDto: AddClassDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+  async updateClass(@Body() classDto: Partial<AddClassDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
       await validateFields({ id }, `common.required_field`, i18n);
       const classExisted = await this._classService.findById(id);
@@ -762,6 +780,12 @@ export class AdminController {
         userId: user,
       };
       const teacher = await this._teacherService.create(teacherInstance);
+      const schoolInfo = await this._classService.findOne({ isSchoolClass: true });
+      await this._teacherAssignmentService.create({
+        teacherId: teacher._id,
+        classId: schoolInfo._id,
+        isSchoolAssign: true,
+      });
       return new ApiResponse(teacher);
     } catch (error) {
       console.log('error', error);
@@ -816,7 +840,7 @@ export class AdminController {
   @Roles(ConstantRoles.SUPER_USER)
   @ApiBadRequestResponse({ type: ApiException })
   @HttpCode(HttpStatus.OK)
-  async updateTeacher(@Body() teacherDto: AddTeacherDto, @I18n() i18n: I18nContext, @Param('id') id: string) {
+  async updateTeacher(@Body() teacherDto: Partial<AddTeacherDto>, @I18n() i18n: I18nContext, @Param('id') id: string) {
     try {
       const { address, gender, degree, age, ...userDto } = teacherDto;
       await validateFields({ id }, `common.required_field`, i18n);
@@ -1030,7 +1054,7 @@ export class AdminController {
         teacherId: new Types.ObjectId(teacherId),
         classId: new Types.ObjectId(classId),
         subjectId: new Types.ObjectId(subjectId),
-        isClassAdmin,
+        isSchoolAssign: false,
       };
 
       const result = await this._teacherAssignmentService.create(teacherAssignmentInstance);

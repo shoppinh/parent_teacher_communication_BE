@@ -25,9 +25,6 @@ export class ParentService extends BaseService<Parent> {
         foreignField: 'parentId',
         as: 'children',
       })
-      .unwind({
-        path: '$children',
-      })
       .project({
         'userId.password': 0,
       });

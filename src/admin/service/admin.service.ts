@@ -10,7 +10,7 @@ export class AdminService {
   constructor(private readonly _roleService: RoleService, private readonly _userService: UserService) {}
 
   async addSingleUser(userDto: AddUserDto, i18n: I18nContext) {
-    const { mobilePhone, username, email, firstName, lastName, isActive, roleKey, password } = userDto;
+    const { mobilePhone, username, email, firstName, lastName, avatar, fullName, isActive, roleKey, password } = userDto;
     await validateFields({ mobilePhone, email, username, roleKey, password }, `common.required_field`, i18n);
 
     if (!isPhoneNumberValidation(mobilePhone)) {
@@ -52,6 +52,8 @@ export class AdminService {
       isActive,
       firstname: firstName,
       lastname: lastName,
+      fullname: fullName,
+      avatar,
       role: roleKey,
       password: hashPassword,
     };

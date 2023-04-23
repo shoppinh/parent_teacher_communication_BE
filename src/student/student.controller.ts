@@ -1,28 +1,26 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../shared/decorator/roles.decorator';
-import { ConstantRoles } from '../shared/utils/constant/role';
-import { ApiException } from '../shared/type/api-exception.model';
-import { GetUser } from '../shared/decorator/current-user.decorator';
-import { User } from '../user/schema/user.schema';
+import { Types } from 'mongoose';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import { JwtGuard } from '../auth/guard/jwt-auth.guard';
 import { RolesGuard } from '../auth/guard/role.guard';
-import { AddStudentDto } from './dto/add-student.dto';
-import { toListResponse, validateFields } from '../shared/utils';
-import { Types } from 'mongoose';
-import { ApiResponse } from '../shared/response/api-response';
-import { StudentService } from './student.service';
-import { GetAllStudentDto } from './dto/get-all-student.dto';
 import { ClassService } from '../class/class.service';
 import { ParentService } from '../parent/parent.service';
-import { ProgressTrackingService } from '../progress-tracking/service/progress-tracking.service';
-import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
-import { TeacherService } from '../teacher/teacher.service';
-import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
 import { GetAllLeaveForm } from '../progress-tracking/dto/get-all-leave-form.dto';
 import { GetAllProgressDto } from '../progress-tracking/dto/get-all-progress-tracking.dto';
-import { UpdateStudentDto } from './dto/update-student.dto';
+import { LeaveFormService } from '../progress-tracking/service/leave-form.service';
+import { ProgressTrackingService } from '../progress-tracking/service/progress-tracking.service';
+import { GetUser } from '../shared/decorator/current-user.decorator';
+import { Roles } from '../shared/decorator/roles.decorator';
+import { ApiResponse } from '../shared/response/api-response';
+import { ApiException } from '../shared/type/api-exception.model';
+import { toListResponse, validateFields } from '../shared/utils';
+import { ConstantRoles } from '../shared/utils/constant/role';
+import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
+import { TeacherService } from '../teacher/teacher.service';
+import { User } from '../user/schema/user.schema';
+import { GetAllStudentDto } from './dto/get-all-student.dto';
+import { StudentService } from './student.service';
 
 @ApiTags('Student')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -258,78 +256,6 @@ export class StudentController {
     }
   }
 
-  // Update student(children) of the parent
-  @Put(':id')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT, ConstantRoles.TEACHER)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async updateStudent(@Body() studentDto: UpdateStudentDto, @I18n() i18n: I18nContext, @Param('id') id: string, @GetUser() user: User) {
-    try {
-      const { name, age, gender, relationship, parentId, classId } = studentDto;
-      await validateFields({ id }, `common.required_field`, i18n);
-      // Need to check if it is parent, then check if the student is belonged to the parent and cannot update classId
-      // Check if the student is belonged to the parent
-      if (user.role === ConstantRoles.PARENT) {
-        const parentExisted = await this._parentService.findById(parentId);
-        if (!parentExisted || !parentExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-        }
-        const childExisted = await this._studentService.findOne({
-          parentId: parentExisted._id,
-          _id: id,
-        });
-        if (!childExisted || !childExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_student'), HttpStatus.CONFLICT);
-        }
-      }
-
-      const studentInstance: any = {
-        name: name.trim(),
-        ...(parentId && { parentId: new Types.ObjectId(parentId) }),
-        ...(classId && { classId: new Types.ObjectId(classId) }),
-        age,
-        gender,
-        relationship,
-      };
-      const result = await this._studentService.update(id, studentInstance);
-      return new ApiResponse(result);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  // Delete the student of parent
-  @Delete(':id')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async deleteStudent(@I18n() i18n: I18nContext, @Param('id') id: string) {
-    try {
-      await validateFields({ id }, `common.required_field`, i18n);
-      // Need to check if it is parent, then check if the student is belonged to the parent
-      const student = await this._studentService.findOne({ _id: new Types.ObjectId(id) });
-
-      if (!student) {
-        throw new HttpException(
-          await i18n.translate(`common.not_found`, {
-            args: { fieldName: 'id' },
-          }),
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const result = await this._studentService.delete(student._id);
-      return new ApiResponse(result);
-    } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
   // Get student detail
   @Get(':id')
   @ApiBearerAuth()
@@ -353,49 +279,6 @@ export class StudentController {
       }
       return new ApiResponse(student);
     } catch (error) {
-      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  // Add student(children)
-  @Post('')
-  @ApiBearerAuth()
-  @Roles(ConstantRoles.PARENT)
-  @ApiBadRequestResponse({ type: ApiException })
-  @HttpCode(HttpStatus.OK)
-  async addStudent(@Body() studentDto: AddStudentDto, @I18n() i18n: I18nContext, @GetUser() user: User) {
-    try {
-      const { classId, name, age, gender, relationship } = studentDto;
-      await validateFields({ name }, `common.required_field`, i18n);
-
-      //Check parent exists
-      const parentExisted = await this._parentService.getParentByUserId(user._id);
-      if (!parentExisted || !parentExisted?._id) {
-        throw new HttpException(await i18n.translate('message.nonexistent_parent'), HttpStatus.CONFLICT);
-      }
-
-      //Check class exists
-      if (classId) {
-        const classExisted = await this._classService.findOne({ _id: new Types.ObjectId(classId) });
-        if (!classExisted || !classExisted?._id) {
-          throw new HttpException(await i18n.translate('message.nonexistent_class'), HttpStatus.CONFLICT);
-        }
-      }
-
-      const studentInstance: any = {
-        name: name.trim(),
-        parentId: parentExisted._id,
-        classId: classId ? new Types.ObjectId(classId) : classId,
-        age,
-        gender,
-        relationship,
-      };
-      const result = await this._studentService.create(studentInstance);
-      return new ApiResponse(result);
-    } catch (error) {
-      console.log('error', error);
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,
       });

@@ -42,5 +42,4 @@ export class AddParentDto extends AddUserDto {
   @IsString()
   @IsOptional()
   country?: string;
-
 }
