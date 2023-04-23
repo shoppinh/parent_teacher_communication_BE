@@ -389,11 +389,6 @@ export class AdminController {
       if (userExistedPhone && userDto.mobilePhone !== userExistedPhone.mobilePhone && userExistedPhone?._id) {
         throw new HttpException(await i18n.translate('message.existed_phone_number'), HttpStatus.CONFLICT);
       }
-      let hashPassword = '';
-      if (userDto.password) {
-        hashPassword = await passwordGenerate(userDto.password);
-      }
-
       const userInstance: any = {
         mobilePhone: userDto.mobilePhone,
         username: userDto.username,
@@ -404,7 +399,7 @@ export class AdminController {
         fullname: userDto.fullName,
         avatar: userDto.avatar,
         role: userDto.roleKey,
-        ...(userDto.password && { password: hashPassword }),
+        ...(userDto.password && { password: await passwordGenerate(userDto.password) }),
       };
       // TODO: Replace nested user in parent document to user objectId
 
@@ -867,7 +862,11 @@ export class AdminController {
         degree,
         age,
       };
-      await this._userService.update(existedTeacher.userId._id, userDto);
+      const userInstance = {
+        ...userDto,
+        ...(userDto?.password && { password: await passwordGenerate(userDto.password) }),
+      };
+      await this._userService.update(existedTeacher.userId._id, userInstance);
       const result = await this._teacherService.update(id, teacherInstance, 'userId');
       return new ApiResponse(result);
     } catch (error) {
@@ -1055,6 +1054,7 @@ export class AdminController {
         classId: new Types.ObjectId(classId),
         subjectId: new Types.ObjectId(subjectId),
         isSchoolAssign: false,
+        isClassAdmin,
       };
 
       const result = await this._teacherAssignmentService.create(teacherAssignmentInstance);
@@ -1150,7 +1150,13 @@ export class AdminController {
           throw new HttpException(await i18n.translate('message.nonexistent_subject'), HttpStatus.CONFLICT);
         }
       }
-      const result = await this._teacherAssignmentService.update(id, teacherAssignmentDto);
+      const teacherInstance = {
+        teacherId: teacherId ? new Types.ObjectId(teacherId) : assignmentExisted?.teacherId,
+        classId: classId ? new Types.ObjectId(classId) : assignmentExisted?.classId,
+        subjectId: subjectId ? new Types.ObjectId(subjectId) : assignmentExisted?.subjectId,
+        isClassAdmin: teacherAssignmentDto?.isClassAdmin ?? assignmentExisted?.isClassAdmin,
+      };
+      const result = await this._teacherAssignmentService.update(id, teacherInstance);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
