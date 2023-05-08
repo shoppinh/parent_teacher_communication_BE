@@ -1,20 +1,20 @@
-import { BadRequestException, Body, Controller, Delete, Param, Post, UseGuards, Request } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Param, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiCreatedResponse, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { I18n, I18nContext } from 'nestjs-i18n';
+import { AddParentDto } from 'src/admin/dto/add-parent.dto';
 import { ApiResponse } from 'src/shared/response/api-response';
 import { ApiException } from 'src/shared/type/api-exception.model';
-import { AuthService } from './auth.service';
-import { LoginResponseDto } from './dto/login-response.dto';
-import { UsernameLoginDto } from './dto/username-login.dto';
-import { JwtPayloadInterface } from './model/jwt.interface';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { JwtGuard } from './guard/jwt-auth.guard';
-import { CreateUserDeviceDto } from './dto/create-user-device.dto';
-import { UserService } from '../user/service/user.service';
-import { UserDeviceService } from '../user/service/user-device.service';
-import { UserTokenService } from '../user/service/user-token.service';
 import { GetUser } from '../shared/decorator/current-user.decorator';
 import { User } from '../user/schema/user.schema';
+import { UserDeviceService } from '../user/service/user-device.service';
+import { UserService } from '../user/service/user.service';
+import { AuthService } from './auth.service';
+import { CreateUserDeviceDto } from './dto/create-user-device.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { UsernameLoginDto } from './dto/username-login.dto';
+import { JwtGuard } from './guard/jwt-auth.guard';
+import { JwtPayloadInterface } from './model/jwt.interface';
 
 @ApiTags('Auth')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -107,5 +107,11 @@ export class AuthController {
       console.log('error', error);
       throw new BadRequestException(error);
     }
+  }
+
+  @Post('register')
+  @ApiBadRequestResponse({ type: ApiException })
+  async register(@Body() registerParentDto: AddParentDto, @I18n() i18n: I18nContext) {
+    return new ApiResponse(await this._authService.register(registerParentDto, i18n));
   }
 }
