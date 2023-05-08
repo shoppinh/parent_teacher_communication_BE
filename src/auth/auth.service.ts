@@ -11,10 +11,20 @@ import { parsePhoneNumber } from 'libphonenumber-js';
 import { compare } from 'bcryptjs';
 import { UserTokenService } from 'src/user/service/user-token.service';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { AddParentDto } from 'src/admin/dto/add-parent.dto';
+import { AdminService } from 'src/admin/service/admin.service';
+import { ParentService } from 'src/parent/parent.service';
+import { ApiResponse } from 'src/shared/response/api-response';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly _userService: UserService, private readonly _userTokenService: UserTokenService, private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly _userService: UserService,
+    private readonly _userTokenService: UserTokenService,
+    private readonly jwtService: JwtService,
+    private readonly _adminService: AdminService,
+    private readonly _parentService: ParentService,
+  ) {}
 
   async login(dto: UsernameLoginDto, i18n: I18nContext) {
     try {
@@ -238,6 +248,34 @@ export class AuthService {
     } catch (e) {
       console.log('logout error', e);
       return false;
+    }
+  }
+
+  async register(dto: AddParentDto, i18n: I18nContext) {
+    try {
+      const { address, ward, district, country, province, job, gender, age, ...userDto } = dto;
+
+      const user = await this._adminService.addSingleUser(userDto, i18n);
+      const parentInstance: any = {
+        address,
+        ward,
+        district,
+        province,
+        country,
+        job,
+        gender,
+        age,
+        userId: user,
+      };
+      await this._parentService.create(parentInstance);
+      return new ApiResponse({
+        status: true,
+      });
+    } catch (error) {
+      console.log('error', error);
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
     }
   }
 }

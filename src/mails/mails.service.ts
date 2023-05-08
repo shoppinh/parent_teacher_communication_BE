@@ -6,7 +6,7 @@ export class MailsService {
   constructor(private mailerService: MailerService) {}
 
   async sendUserInvitation(email: string, token: string) {
-    const url = `${process.env.APP_URL}/invite-user/${token}`;
+    const url = `${process.env.APP_URL}/register/${token}`;
     const home_url = process.env.APP_URL;
     const external_content = `<p>To finish setting up your account, simply click on your <a href="${url}">sign-up link</a></p>`;
 
