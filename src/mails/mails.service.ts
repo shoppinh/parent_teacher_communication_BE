@@ -32,17 +32,19 @@ export class MailsService {
   }
 
   async sendUserEventNotification(email: string[], event: Event) {
+    const eventLink = `${process.env.APP_URL}/parent-event`;
     return this.mailerService
       .sendMail({
         to: email,
         subject: 'You have been invited a meeting!',
-        template: 'event-invitation', // `.hbs` extension is appended automatically
+        template: 'event', // `.hbs` extension is appended automatically
         context: {
           // ✏️ filling curly brackets with content
           eventName: event.title,
           eventStart: event.start,
           eventEnd: event.end,
           eventContent: event.content,
+          eventLink,
         },
       })
       .catch((error) => {
@@ -52,14 +54,17 @@ export class MailsService {
   }
 
   async sendUserPostNotification(email: string[], post: Post) {
+    const url = `${process.env.APP_URL}/parent/?classId=${post.classId._id}`;
     return this.mailerService
       .sendMail({
         to: email,
         subject: 'Your class has a new post!',
-        template: 'class-post-notification',
+        template: 'class',
         context: {
           postTitle: post.title,
           postDescription: post.description,
+          className: post.classId.name,
+          url,
         },
       })
       .catch((error) => {
