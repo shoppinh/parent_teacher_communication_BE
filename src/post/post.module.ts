@@ -10,6 +10,7 @@ import { ClassModule } from '../class/class.module';
 import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
 import { CommentModule } from '../comment/comment.module';
 import { TeacherModule } from '../teacher/teacher.module';
+import { MailsModule } from 'src/mails/mails.module';
 
 @Module({
   providers: [PostService, PostReactionService],
@@ -32,6 +33,7 @@ import { TeacherModule } from '../teacher/teacher.module';
     TeacherAssignmentModule,
     CommentModule,
     TeacherModule,
+    MailsModule,
   ],
 })
 export class PostModule {}

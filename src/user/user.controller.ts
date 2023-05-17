@@ -137,6 +137,13 @@ export class UserController {
         avatar,
       };
       const result = await this._userService.update(user._id, userInstance);
+      if (user.role === ConstantRoles.PARENT) {
+        const parentExisted = await this._parentService.getParentByUserId(user._id);
+        await this._parentService.update(parentExisted._id, { userId: result });
+      } else if (user.role === ConstantRoles.TEACHER) {
+        const teacherExisted = await this._teacherService.getTeacherByUserId(user._id);
+        await this._teacherService.update(teacherExisted._id, { userId: result });
+      }
       return new ApiResponse(result);
     } catch (error) {
       console.log('error', error);

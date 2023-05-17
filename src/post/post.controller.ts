@@ -201,7 +201,7 @@ export class PostController {
         ...(classId && { classId: new Types.ObjectId(classId) }),
       };
       const result = await this._postService.update(id, updatePostInstance);
-      const parentList = await this._parentService.getParentListForClass(classId);
+      const parentList = await this._parentService.getParentListForClass(result.classId._id);
       const parentEmailList = parentList.map((parent) => {
         return parent.userId.email;
       });
