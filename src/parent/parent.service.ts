@@ -87,8 +87,6 @@ export class ParentService extends BaseService<Parent> {
       .exec();
   }
 
-  async ownThisChild(parentId: string, childId: string) {}
-
   async getParentByUserId(userId: string) {
     return this.model.findOne({ 'userId._id': new Types.ObjectId(userId) }).exec();
   }

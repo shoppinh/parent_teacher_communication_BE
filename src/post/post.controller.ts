@@ -22,6 +22,7 @@ import { Types } from 'mongoose';
 import { ParentService } from '../parent/parent.service';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
 import { TeacherService } from 'src/teacher/teacher.service';
+import { MailsService } from 'src/mails/mails.service';
 
 @ApiTags('Post')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -38,6 +39,7 @@ export class PostController {
     private readonly _parentService: ParentService,
     private readonly _teacherService: TeacherService,
     private readonly _teacherAssignmentService: TeacherAssignmentService,
+    private readonly _mailService: MailsService,
   ) {}
 
   @Post('list')
@@ -157,6 +159,11 @@ export class PostController {
         classId: new Types.ObjectId(classId),
       };
       const result = await this._postService.create(postInstance);
+      const parentList = await this._parentService.getParentListForClass(classId);
+      const parentEmailList = parentList.map((parent) => {
+        return parent.userId.email;
+      });
+      await this._mailService.sendUserPostNotification(parentEmailList, result);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -194,6 +201,11 @@ export class PostController {
         ...(classId && { classId: new Types.ObjectId(classId) }),
       };
       const result = await this._postService.update(id, updatePostInstance);
+      const parentList = await this._parentService.getParentListForClass(classId);
+      const parentEmailList = parentList.map((parent) => {
+        return parent.userId.email;
+      });
+      await this._mailService.sendUserPostNotification(parentEmailList, result);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {

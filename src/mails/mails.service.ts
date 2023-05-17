@@ -1,6 +1,7 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Event } from 'src/event/schema/event.schema';
+import { Post } from 'src/post/schema/post.schema';
 
 @Injectable()
 export class MailsService {
@@ -38,7 +39,6 @@ export class MailsService {
         template: 'event-invitation', // `.hbs` extension is appended automatically
         context: {
           // ✏️ filling curly brackets with content
-          name: email,
           eventName: event.title,
           eventStart: event.start,
           eventEnd: event.end,
@@ -47,7 +47,24 @@ export class MailsService {
       })
       .catch((error) => {
         console.log(Date(), 'error', error);
-        throw new BadRequestException("Can't send invitation email");
+        throw new BadRequestException("Can't send meeting invitation email");
+      });
+  }
+
+  async sendUserPostNotification(email: string[], post: Post) {
+    return this.mailerService
+      .sendMail({
+        to: email,
+        subject: 'Your class has a new post!',
+        template: 'class-post-notification',
+        context: {
+          postTitle: post.title,
+          postDescription: post.description,
+        },
+      })
+      .catch((error) => {
+        console.log(Date(), 'error', error);
+        throw new BadRequestException("Can't send class post notification email");
       });
   }
 }
