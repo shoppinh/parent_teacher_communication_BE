@@ -94,11 +94,11 @@ export class EventController {
       };
 
       const result = await this._eventService.create(eventInstance);
-      const participantDetails = await this._userService.getUserListFromParticipants(participants)
+      const participantDetails = await this._userService.getUserListFromParticipants(participants);
       const mappedParticipantDetails = participantDetails.map((item) => {
         return item.email;
       });
-      await this._mailService.sendUserEventNotification(mappedParticipantDetails,result)
+      await this._mailService.sendUserEventNotification(mappedParticipantDetails, result);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -134,11 +134,11 @@ export class EventController {
       };
 
       const result = await this._eventService.update(id, eventInstance);
-      const participantDetails = await this._userService.getUserListFromParticipants(participants)
+      const participantDetails = await this._userService.getUserListFromParticipants(participants);
       const mappedParticipantDetails = participantDetails.map((item) => {
         return item.email;
       });
-      await this._mailService.sendUserEventNotification(mappedParticipantDetails,result)
+      await this._mailService.sendUserEventNotification(mappedParticipantDetails, result);
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {

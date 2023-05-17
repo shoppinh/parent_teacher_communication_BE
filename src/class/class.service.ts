@@ -55,10 +55,6 @@ export class ClassService extends BaseService<Class> {
       .exec();
   }
 
-  async getClassListForTeacher(user: User) {}
-
-  async getClassListForParent(user: User) {}
-
   async getStudentListForClass(classId: string) {
     return this.model
       .aggregate()
