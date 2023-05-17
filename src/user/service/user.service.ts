@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { BaseService } from 'src/shared/service/base.service';
 import { User, UserDocument } from '../schema/user.schema';
 import { UserSortOrder } from '../../admin/dto/get-all-user.dto';
@@ -56,7 +56,14 @@ export class UserService extends BaseService<User> {
       })
       .exec();
   }
-  async sendInvitation(email: string, user: User) {
-    console.log('sendInvitation');
+
+  async getUserListFromParticipants(participants: string[]) {
+    const mappedParticipants = participants.map((item) => {
+      return new Types.ObjectId(item);
+    });
+    return this.modelUser
+      .find({ _id: { $in: mappedParticipants } })
+      .select({ password: 0 })
+      .exec();
   }
 }

@@ -1,5 +1,6 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { Event } from 'src/event/schema/event.schema';
 
 @Injectable()
 export class MailsService {
@@ -21,6 +22,27 @@ export class MailsService {
           name: email,
           home_url,
           external_content,
+        },
+      })
+      .catch((error) => {
+        console.log(Date(), 'error', error);
+        throw new BadRequestException("Can't send invitation email");
+      });
+  }
+
+  async sendUserEventNotification(email: string[], event: Event) {
+    return this.mailerService
+      .sendMail({
+        to: email,
+        subject: 'You have been invited a meeting!',
+        template: 'event-invitation', // `.hbs` extension is appended automatically
+        context: {
+          // ✏️ filling curly brackets with content
+          name: email,
+          eventName: event.title,
+          eventStart: event.start,
+          eventEnd: event.end,
+          eventContent: event.content,
         },
       })
       .catch((error) => {
