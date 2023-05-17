@@ -14,6 +14,8 @@ import { ApiResponse } from '../shared/response/api-response';
 import { Types } from 'mongoose';
 import { GetUser } from 'src/shared/decorator/current-user.decorator';
 import { User } from 'src/user/schema/user.schema';
+import { UserService } from 'src/user/service/user.service';
+import { MailsService } from 'src/mails/mails.service';
 
 @ApiTags('Event')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -21,7 +23,7 @@ import { User } from 'src/user/schema/user.schema';
 @Controller('api/event')
 @UseGuards(JwtGuard, RolesGuard)
 export class EventController {
-  constructor(private readonly _eventService: EventService) {}
+  constructor(private readonly _eventService: EventService, private readonly _userService: UserService, private readonly _mailService: MailsService) {}
 
   @Post('list')
   @ApiBearerAuth()
@@ -92,6 +94,11 @@ export class EventController {
       };
 
       const result = await this._eventService.create(eventInstance);
+      const participantDetails = await this._userService.getUserListFromParticipants(participants)
+      const mappedParticipantDetails = participantDetails.map((item) => {
+        return item.email;
+      });
+      await this._mailService.sendUserEventNotification(mappedParticipantDetails,result)
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -127,6 +134,11 @@ export class EventController {
       };
 
       const result = await this._eventService.update(id, eventInstance);
+      const participantDetails = await this._userService.getUserListFromParticipants(participants)
+      const mappedParticipantDetails = participantDetails.map((item) => {
+        return item.email;
+      });
+      await this._mailService.sendUserEventNotification(mappedParticipantDetails,result)
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
