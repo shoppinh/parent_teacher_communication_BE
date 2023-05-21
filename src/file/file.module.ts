@@ -25,5 +25,6 @@ import { Files, FilesSchema } from './schema/files.schema';
       },
     ]),
   ],
+  exports: [FileService],
 })
 export class FileModule {}

@@ -8,6 +8,7 @@ import { ParentModule } from '../parent/parent.module';
 import { TeacherModule } from '../teacher/teacher.module';
 import { TeacherAssignmentModule } from '../teacher-assignment/teacher-assignment.module';
 import { ProgressTrackingModule } from '../progress-tracking/progress-tracking.module';
+import { FileModule } from 'src/file/file.module';
 
 @Module({
   controllers: [StudentController],
@@ -25,6 +26,7 @@ import { ProgressTrackingModule } from '../progress-tracking/progress-tracking.m
     forwardRef(() => TeacherModule),
     TeacherAssignmentModule,
     ProgressTrackingModule,
+    FileModule,
   ],
 })
 export class StudentModule {}

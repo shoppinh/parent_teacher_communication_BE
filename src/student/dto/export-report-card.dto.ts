@@ -1,14 +1,14 @@
 import { ApiModelProperty } from '@nestjs/swagger/dist/decorators/api-model-property.decorator';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { BaseDto } from 'src/shared/dto/base.dto';
 
 export class ExportReportCardDto extends BaseDto {
   @ApiModelProperty({ required: true })
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  year: number;
+  year: string;
   @ApiModelProperty({ required: true })
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  semester: number;
+  semester: string;
 }
