@@ -22,6 +22,9 @@ import { User } from '../user/schema/user.schema';
 import { GetAllStudentDto } from './dto/get-all-student.dto';
 import { StudentService } from './student.service';
 import { ExportReportCardDto } from './dto/export-report-card.dto';
+import { ExportReportCardColumns } from './enums';
+import * as moment from 'moment-timezone';
+import { FileService } from 'src/file/file.service';
 
 @ApiTags('Student')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -37,6 +40,7 @@ export class StudentController {
     private readonly _teacherService: TeacherService,
     private readonly _teacherAssignmentService: TeacherAssignmentService,
     private readonly _leaveFormService: LeaveFormService,
+    private readonly _filesServices: FileService,
   ) {}
 
   @Get('progress-tracking/:progressId')
@@ -92,8 +96,26 @@ export class StudentController {
   async exportReportCard(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('studentId') studentId: string, @Query() query: ExportReportCardDto) {
     try {
       await validateFields({ studentId }, `common.required_field`, i18n);
-      const response = await this._progressTrackingService.exportReportCard(studentId, query.year, query.semester);
-      return new ApiResponse(response);
+      const childrenExisted = await this._studentService.findOne({
+        _id: new Types.ObjectId(studentId),
+      });
+      if (!childrenExisted) {
+        throw new HttpException(await i18n.translate(`message.nonexistent_child`), HttpStatus.NOT_FOUND);
+      }
+      const [{ data, average }] = await this._progressTrackingService.exportReportCard(studentId, parseInt(query.year), parseInt(query.semester));
+      const xlsxData = data?.map((item) => {
+        return {
+          [ExportReportCardColumns.SUBJECT_NAME]: item.subject.name,
+          [ExportReportCardColumns.FREQUENT_MARK]: item.frequentMark,
+          [ExportReportCardColumns.MID_TERM_MARK]: item.middleExamMark,
+          [ExportReportCardColumns.FINAL_MARK]: item.finalExamMark,
+          [ExportReportCardColumns.AVERAGE_MARK]: item.averageMark,
+          [ExportReportCardColumns.SEMESTER_MARK]: average[0].averageSemesterMark,
+        };
+      });
+      const fileName = `Report_Card_Data_${childrenExisted.name}_semester${query.semester}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
+      const file = await this._filesServices.exportXLSXFile(fileName, xlsxData, 'Report_Card_Data', user, { wch: 20 });
+      return new ApiResponse(file);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,

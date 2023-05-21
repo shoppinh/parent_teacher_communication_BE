@@ -126,11 +126,33 @@ export class ProgressTrackingService extends BaseService<Progress> {
         as: 'class',
       })
       .unwind('class')
+
       .project({
         __v: 0,
         studentId: 0,
         subjectId: 0,
+      })
+      .facet({
+        data: [
+          {
+            $skip: 0,
+          },
+          {
+            $limit: 1000,
+          },
+        ],
+        average: [
+          {
+            $group: {
+              _id: '$studentId',
+              averageSemesterMark: {
+                $avg: '$averageMark',
+              },
+            },
+          },
+        ],
       });
+
     return aggregation.exec();
   }
 }
