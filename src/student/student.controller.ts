@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { I18n, I18nContext } from 'nestjs-i18n';
@@ -21,6 +21,7 @@ import { TeacherService } from '../teacher/teacher.service';
 import { User } from '../user/schema/user.schema';
 import { GetAllStudentDto } from './dto/get-all-student.dto';
 import { StudentService } from './student.service';
+import { ExportReportCardDto } from './dto/export-report-card.dto';
 
 @ApiTags('Student')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -76,6 +77,23 @@ export class StudentController {
       }
       const [progressTrackingDetail] = await this._progressTrackingService.getDetailProgressTracking(id);
       return new ApiResponse(progressTrackingDetail);
+    } catch (error) {
+      throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
+        cause: error,
+      });
+    }
+  }
+
+  @Get('progress-tracking/export-report-card/:studentId')
+  @ApiBearerAuth()
+  @Roles(ConstantRoles.TEACHER, ConstantRoles.PARENT)
+  @ApiBadRequestResponse({ type: ApiException })
+  @HttpCode(HttpStatus.OK)
+  async exportReportCard(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('studentId') studentId: string, @Query() query: ExportReportCardDto) {
+    try {
+      await validateFields({ studentId }, `common.required_field`, i18n);
+      const response = await this._progressTrackingService.exportReportCard(studentId, query.year, query.semester);
+      return new ApiResponse(response);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,

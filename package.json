@@ -42,6 +42,7 @@
     "handlebars": "^4.7.7",
     "libphonenumber-js": "^1.10.18",
     "lodash": "^4.17.21",
+    "moment-timezone": "^0.5.43",
     "mongoose": "^6.9.0",
     "nest-winston": "^1.8.0",
     "nestjs-i18n": "^9.1.5",
@@ -50,7 +51,8 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
-    "winston": "^3.8.2"
+    "winston": "^3.8.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
