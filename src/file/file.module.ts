@@ -4,6 +4,8 @@ import { FileController } from './file.controller';
 import { FileService } from './file.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Files, FilesSchema } from './schema/files.schema';
 @Module({
   controllers: [FileController],
   providers: [FileService],
@@ -16,6 +18,12 @@ import { diskStorage } from 'multer';
         },
       }),
     }),
+    MongooseModule.forFeature([
+      {
+        name: Files.name,
+        schema: FilesSchema,
+      },
+    ]),
   ],
 })
 export class FileModule {}

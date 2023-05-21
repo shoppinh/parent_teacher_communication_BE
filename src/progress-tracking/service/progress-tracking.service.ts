@@ -100,4 +100,37 @@ export class ProgressTrackingService extends BaseService<Progress> {
       .unwind('subject');
     return aggregation.exec();
   }
+
+  async exportReportCard(studentId: string, year: number, semester: number) {
+    const aggregation = this.model
+      .aggregate()
+      .match({ studentId: new Types.ObjectId(studentId), year, semester })
+      .lookup({
+        from: 'students',
+        localField: 'studentId',
+        foreignField: '_id',
+        as: 'student',
+      })
+      .unwind('student')
+      .lookup({
+        from: 'subjects',
+        localField: 'subjectId',
+        foreignField: '_id',
+        as: 'subject',
+      })
+      .unwind('subject')
+      .lookup({
+        from: 'classes',
+        localField: 'classId',
+        foreignField: '_id',
+        as: 'class',
+      })
+      .unwind('class')
+      .project({
+        __v: 0,
+        studentId: 0,
+        subjectId: 0,
+      });
+    return aggregation.exec();
+  }
 }
