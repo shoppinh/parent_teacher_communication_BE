@@ -16,6 +16,7 @@ export class FileService extends BaseService<Files> {
     super();
     this.model = _model;
   }
+
   async deleteFile(filePath: string) {
     try {
       return fs.rmSync(`./${Folder.PUBLIC}/${filePath}`);
@@ -23,6 +24,7 @@ export class FileService extends BaseService<Files> {
       return false;
     }
   }
+
   async createFolder(folderName: string) {
     const folderPath = `./${Folder.PUBLIC}/${folderName}`;
     if (!fs.existsSync(folderPath)) {
@@ -30,7 +32,8 @@ export class FileService extends BaseService<Files> {
     }
     return folderPath;
   }
-  async exportXLSXFile(fileName: string, xlsxData: Record<string, any>[], sheetName: string, currentUser: User, colInfo?: xlsx.ColInfo) {
+
+  async exportXLSXFile(fileName: string, xlsxData: Record<string, any>[], sheetName: string, currentUser: User, colInfo?: xlsx.ColInfo, additionalLine?: Record<string, any>) {
     const folderPath = await this.createFolder(Folder.TMP);
     const ts = moment().tz(process.env.TZ).format('yyyyMMDDHHmmssSSSS');
     const fileNameWithTS = `${fileName}_${ts}.xlsx`;
@@ -57,6 +60,10 @@ export class FileService extends BaseService<Files> {
     if (colInfo && xlsxData.length) {
       ws['!cols'] = Object.keys(xlsxData[0]).map(() => colInfo);
     }
+    const averageRowIndex = xlsxData.length + 1; // Assuming the report card data starts from row 1
+
+    xlsx.utils.sheet_add_json(ws, [additionalLine], { skipHeader: false, origin: { r: averageRowIndex, c: 0 } });
+
     xlsx.utils.book_append_sheet(wb, ws, sheetName);
     xlsx.writeFileXLSX(wb, `${folderPath}/${fileNameWithTS}`, { bookType: 'xlsx' });
     return { fileName: fileNameWithTS, filePath, expiredDate };

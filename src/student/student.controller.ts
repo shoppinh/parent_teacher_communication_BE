@@ -110,11 +110,13 @@ export class StudentController {
           [ExportReportCardColumns.MID_TERM_MARK]: item.middleExamMark,
           [ExportReportCardColumns.FINAL_MARK]: item.finalExamMark,
           [ExportReportCardColumns.AVERAGE_MARK]: item.averageMark,
-          [ExportReportCardColumns.SEMESTER_MARK]: average[0].averageSemesterMark,
         };
       });
+      const additionalData = {
+        [ExportReportCardColumns.SEMESTER_MARK]: average[0].averageSemesterMark,
+      };
       const fileName = `Report_Card_Data_${childrenExisted.name}_semester${query.semester}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
-      const file = await this._filesServices.exportXLSXFile(fileName, xlsxData, 'Report_Card_Data', user, { wch: 20 });
+      const file = await this._filesServices.exportXLSXFile(fileName, xlsxData, 'Report_Card_Data', user, { wch: 20 }, additionalData);
       return new ApiResponse(file);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
