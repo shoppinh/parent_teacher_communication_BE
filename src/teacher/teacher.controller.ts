@@ -61,8 +61,6 @@ export class TeacherController {
         {
           subjectId: teacherAssignmentExisted.subjectId,
           classId: new Types.ObjectId(classId),
-          year,
-          semester,
         },
         sort,
         search,
