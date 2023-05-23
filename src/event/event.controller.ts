@@ -98,7 +98,9 @@ export class EventController {
       const mappedParticipantDetails = participantDetails.map((item) => {
         return item.email;
       });
-      await this._mailService.sendUserEventNotification(mappedParticipantDetails, result);
+      if (mappedParticipantDetails?.length > 0) {
+        await this._mailService.sendUserEventNotification(mappedParticipantDetails, result);
+      }
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -138,7 +140,9 @@ export class EventController {
       const mappedParticipantDetails = participantDetails.map((item) => {
         return item.email;
       });
-      await this._mailService.sendUserEventNotification(mappedParticipantDetails, result);
+      if (mappedParticipantDetails?.length > 0) {
+        await this._mailService.sendUserEventNotification(mappedParticipantDetails, result);
+      }
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {

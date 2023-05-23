@@ -23,6 +23,7 @@ import { ParentService } from '../parent/parent.service';
 import { TeacherAssignmentService } from '../teacher-assignment/teacher-assignment.service';
 import { TeacherService } from 'src/teacher/teacher.service';
 import { MailsService } from 'src/mails/mails.service';
+import { ConstantPostType } from 'src/shared/utils/constant/post';
 
 @ApiTags('Post')
 @ApiHeader({ name: 'locale', description: 'en' })
@@ -163,7 +164,9 @@ export class PostController {
       const parentEmailList = parentList.map((parent) => {
         return parent.userId.email;
       });
-      await this._mailService.sendUserPostNotification(parentEmailList, result);
+      if (parentEmailList?.length > 0) {
+        await this._mailService.sendUserPostNotification(parentEmailList, result);
+      }
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -205,7 +208,9 @@ export class PostController {
       const parentEmailList = parentList.map((parent) => {
         return parent.userId.email;
       });
-      await this._mailService.sendUserPostNotification(parentEmailList, result);
+      if (parentEmailList?.length > 0) {
+        await this._mailService.sendUserPostNotification(parentEmailList, result);
+      }
       return new ApiResponse(result);
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
@@ -237,7 +242,7 @@ export class PostController {
       await validateFields({ id }, `common.required_field`, i18n);
       const existedPost = await this._postService.findById(id);
       if (!existedPost) throw new HttpException(await i18n.translate(`message.nonexistent_post`), HttpStatus.BAD_REQUEST);
-      if (existedPost.authorId.toString() !== user._id.toString() || user.role !== ConstantRoles.SUPER_USER)
+      if (existedPost.authorId.toString() !== user._id.toString() && user.role !== ConstantRoles.SUPER_USER)
         throw new HttpException(await i18n.translate(`message.not_author`), HttpStatus.BAD_REQUEST);
 
       await this._postService.delete(id);
