@@ -192,8 +192,8 @@ export class FileService extends BaseService<Files> {
       xlsx.utils.sheet_add_json(ws, [row], { skipHeader: true, origin: `A${rowIndex}` });
     });
 
-    const lastRow1Index = semester1XlsxData.length + 8;
-    xlsx.utils.sheet_add_json(ws, [{}, { A: await i18n.translate('common.semester_2') }], { skipHeader: true, origin: `A${lastRow1Index}` });
+    const seperateRow = semester1XlsxData.length + 8;
+    xlsx.utils.sheet_add_json(ws, [{}, { A: await i18n.translate('common.semester_2') }], { skipHeader: true, origin: `A${seperateRow}` });
 
     semester2XlsxData.forEach((subject, index) => {
       const row = {
@@ -208,12 +208,12 @@ export class FileService extends BaseService<Files> {
     });
 
     // Add year average mark
-    const lastRow2Index = semester1XlsxData.length + semester2XlsxData.length + 10;
-    const semester2AverageRow = {
+    const yearAverageRowIndex = semester1XlsxData.length + semester2XlsxData.length + 11;
+    const yearAverageRow = {
       A: ExportReportCardColumns.YEAR_MARK,
       B: Object.values(additionalLine)[0].toFixed(2),
     };
-    xlsx.utils.sheet_add_json(ws, [semester2AverageRow], { skipHeader: true, origin: `A${lastRow2Index}` });
+    xlsx.utils.sheet_add_json(ws, [yearAverageRow], { skipHeader: true, origin: `A${yearAverageRowIndex}` });
 
     // Set column widths
     ws['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
