@@ -96,9 +96,7 @@ export class StudentController {
   async exportReportCard(@GetUser() user: User, @I18n() i18n: I18nContext, @Param('studentId') studentId: string, @Query() query: ExportReportCardDto) {
     try {
       await validateFields({ studentId }, `common.required_field`, i18n);
-      const childrenExisted = await this._studentService.findOne({
-        _id: new Types.ObjectId(studentId),
-      });
+      const childrenExisted = await this._studentService.getStudentDetail(studentId);
       if (!childrenExisted) {
         throw new HttpException(await i18n.translate(`message.nonexistent_child`), HttpStatus.NOT_FOUND);
       }
@@ -117,7 +115,18 @@ export class StudentController {
           [ExportReportCardColumns.SEMESTER_MARK]: average[0].averageSemesterMark,
         };
         const fileName = `Report_Card_Data_${childrenExisted.name}_semester${query.semester}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
-        const file = await this._filesServices.exportSemesterReportFile(fileName, xlsxData, 'Report_Card_Data', user, childrenExisted, { wch: 20 }, additionalData);
+        const file = await this._filesServices.exportSemesterReportFile(
+          fileName,
+          xlsxData,
+          'Report_Card_Data',
+          user,
+          childrenExisted,
+          parseInt(query.semester),
+          parseInt(query.year),
+          i18n,
+          { wch: 20 },
+          additionalData,
+        );
         return new ApiResponse(file);
       } else {
         const semester1Data = data?.filter((item) => item.semester === 1);
@@ -144,7 +153,19 @@ export class StudentController {
           [ExportReportCardColumns.YEAR_MARK]: average[0].averageSemesterMark,
         };
         const fileName = `Report_Card_Data_${childrenExisted.name}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
-        const file = await this._filesServices.exportYearReportFile(fileName, semester1XlsxData, semester2XlsxData, 'Report_Card_Data', user, { wch: 20 }, additionalData);
+        const file = await this._filesServices.exportYearReportFile(
+          fileName,
+          semester1XlsxData,
+          semester2XlsxData,
+          'Report_Card_Data',
+          user,
+          childrenExisted,
+          parseInt(query.semester),
+          parseInt(query.year),
+          i18n,
+          { wch: 20 },
+          additionalData,
+        );
         return new ApiResponse(file);
       }
     } catch (error) {

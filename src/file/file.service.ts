@@ -7,9 +7,11 @@ import { BaseService } from 'src/shared/service/base.service';
 import * as fs from 'fs';
 import * as moment from 'moment-timezone';
 import * as xlsx from 'xlsx';
-import { WorkBook, WorkSheet } from 'xlsx';
+import { WorkBook } from 'xlsx';
 import { User } from 'src/user/schema/user.schema';
 import { Student } from 'src/student/schema/student.schema';
+import { ExportReportCardColumns } from '../student/enums';
+import { I18nContext } from 'nestjs-i18n';
 
 @Injectable()
 export class FileService extends BaseService<Files> {
@@ -40,6 +42,9 @@ export class FileService extends BaseService<Files> {
     sheetName: string,
     currentUser: User,
     childrenExisted: Student,
+    semester: number,
+    year: number,
+    i18n: I18nContext,
     colInfo?: xlsx.ColInfo,
     additionalLine?: Record<string, any>,
   ) {
@@ -66,23 +71,52 @@ export class FileService extends BaseService<Files> {
     }
     const wb: WorkBook = xlsx.utils.book_new();
     // Create a worksheet
-    const ws = xlsx.utils.json_to_sheet([{ A: 'Student Name', B: childrenExisted.name }, { A: 'Class', B: childrenExisted.classId.name }, {}, { A: 'Subject', B: 'Marks' }]);
+    const ws = xlsx.utils.json_to_sheet([
+      {
+        A: await i18n.translate('common.semester_report_title', { args: { semester, year } }),
+      },
+      { A: ExportReportCardColumns.STUDENT_NAME, B: childrenExisted.name },
+      {
+        A: ExportReportCardColumns.CLASS,
+        B: childrenExisted.classId.name,
+      },
+      {},
+      {
+        A: ExportReportCardColumns.SUBJECT_NAME,
+        B: ExportReportCardColumns.FREQUENT_MARK,
+        C: ExportReportCardColumns.MID_TERM_MARK,
+        D: ExportReportCardColumns.FINAL_MARK,
+        E: ExportReportCardColumns.AVERAGE_MARK,
+      },
+    ]);
 
     // Add subject marks to the worksheet
     xlsxData.forEach((subject, index) => {
-      const row = { A: subject.name, B: subject.marks };
-      const rowIndex = index + 4; // Start from row 5 (0-based index)
+      const row = {
+        A: subject[ExportReportCardColumns.SUBJECT_NAME],
+        B: subject[ExportReportCardColumns.AVERAGE_MARK],
+        C: subject[ExportReportCardColumns.MID_TERM_MARK],
+        D: subject[ExportReportCardColumns.FINAL_MARK],
+        E: subject[ExportReportCardColumns.AVERAGE_MARK],
+      };
+      const rowIndex = index + 7; // Start from row 5 (0-based index)
       xlsx.utils.sheet_add_json(ws, [row], { skipHeader: true, origin: `A${rowIndex}` });
     });
 
     // Add semester average mark
-    const lastRowIndex = xlsxData.length + 4;
-    const semesterAverageRow = { A: 'Semester Average Mark', B: Object.values(additionalLine)[0] };
+    const lastRowIndex = xlsxData.length + 5;
+    const semesterAverageRow = {
+      A: ExportReportCardColumns.SEMESTER_MARK,
+      B: Object.values(additionalLine)[0].toFixed(2),
+    };
     xlsx.utils.sheet_add_json(ws, [semesterAverageRow], { skipHeader: true, origin: `A${lastRowIndex + 2}` });
 
     // Set column widths
-    const columnWidths = [{ wch: 20 }, { wch: 10 }];
-    ws['!cols'] = columnWidths;
+    ws['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+
+    const range = xlsx.utils.decode_range(ws['!ref']);
+    range.s.r = 1; // <-- zero-indexed, so setting to 1 will skip row 0
+    ws['!ref'] = xlsx.utils.encode_range(range);
 
     xlsx.utils.book_append_sheet(wb, ws, sheetName);
     xlsx.writeFileXLSX(wb, `${folderPath}/${fileNameWithTS}`, { bookType: 'xlsx' });
@@ -95,6 +129,10 @@ export class FileService extends BaseService<Files> {
     semester2XlsxData: Record<string, any>[],
     sheetName: string,
     currentUser: User,
+    childrenExisted: Student,
+    semester: number,
+    year: number,
+    i18n: I18nContext,
     colInfo?: xlsx.ColInfo,
     additionalLine?: Record<string, any>,
   ) {
@@ -120,8 +158,69 @@ export class FileService extends BaseService<Files> {
       });
     }
     const wb: WorkBook = xlsx.utils.book_new();
-    const ws: WorkSheet = xlsx.utils.json_to_sheet(semester1XlsxData);
+    // Create a worksheet
+    const ws = xlsx.utils.json_to_sheet([
+      {
+        A: await i18n.translate('common.year_report_title', { args: { year } }),
+      },
+      { A: ExportReportCardColumns.STUDENT_NAME, B: childrenExisted.name },
+      {
+        A: ExportReportCardColumns.CLASS,
+        B: childrenExisted.classId.name,
+      },
+      {},
+      {
+        A: ExportReportCardColumns.SUBJECT_NAME,
+        B: ExportReportCardColumns.FREQUENT_MARK,
+        C: ExportReportCardColumns.MID_TERM_MARK,
+        D: ExportReportCardColumns.FINAL_MARK,
+        E: ExportReportCardColumns.AVERAGE_MARK,
+      },
+      { A: await i18n.translate('common.semester_1') },
+    ]);
 
+    // Add subject marks to the worksheet
+    semester1XlsxData.forEach((subject, index) => {
+      const row = {
+        A: subject[ExportReportCardColumns.SUBJECT_NAME],
+        B: subject[ExportReportCardColumns.AVERAGE_MARK],
+        C: subject[ExportReportCardColumns.MID_TERM_MARK],
+        D: subject[ExportReportCardColumns.FINAL_MARK],
+        E: subject[ExportReportCardColumns.AVERAGE_MARK],
+      };
+      const rowIndex = index + 8; // Start from row 8 (0-based index)
+      xlsx.utils.sheet_add_json(ws, [row], { skipHeader: true, origin: `A${rowIndex}` });
+    });
+
+    const lastRow1Index = semester1XlsxData.length + 8;
+    xlsx.utils.sheet_add_json(ws, [{}, { A: await i18n.translate('common.semester_2') }], { skipHeader: true, origin: `A${lastRow1Index}` });
+
+    semester2XlsxData.forEach((subject, index) => {
+      const row = {
+        A: subject[ExportReportCardColumns.SUBJECT_NAME],
+        B: subject[ExportReportCardColumns.AVERAGE_MARK],
+        C: subject[ExportReportCardColumns.MID_TERM_MARK],
+        D: subject[ExportReportCardColumns.FINAL_MARK],
+        E: subject[ExportReportCardColumns.AVERAGE_MARK],
+      };
+      const rowIndex = index + semester1XlsxData.length + 10; // Calculate the start row
+      xlsx.utils.sheet_add_json(ws, [row], { skipHeader: true, origin: `A${rowIndex}` });
+    });
+
+    // Add year average mark
+    const lastRow2Index = semester1XlsxData.length + semester2XlsxData.length + 10;
+    const semester2AverageRow = {
+      A: ExportReportCardColumns.YEAR_MARK,
+      B: Object.values(additionalLine)[0].toFixed(2),
+    };
+    xlsx.utils.sheet_add_json(ws, [semester2AverageRow], { skipHeader: true, origin: `A${lastRow2Index}` });
+
+    // Set column widths
+    ws['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+
+    const range = xlsx.utils.decode_range(ws['!ref']);
+    range.s.r = 1; // <-- zero-indexed, so setting to 1 will skip row 0
+    ws['!ref'] = xlsx.utils.encode_range(range);
     xlsx.utils.book_append_sheet(wb, ws, sheetName);
     xlsx.writeFileXLSX(wb, `${folderPath}/${fileNameWithTS}`, { bookType: 'xlsx' });
     return { fileName: fileNameWithTS, filePath, expiredDate };

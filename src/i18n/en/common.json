@@ -1,4 +1,8 @@
 {
   "required_field": "{fieldName} is required",
-  "not_found": "{fieldName} not found"
+  "not_found": "{fieldName} not found",
+  "semester_report_title": "SEMESTER REPORT FOR {semester} {year}",
+  "year_report_title": "YEAR REPORT FOR {year}",
+  "semester_2": "2nd Semester",
+  "semester_1": "1st Semester"
 }
