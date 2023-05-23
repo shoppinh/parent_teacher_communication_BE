@@ -104,7 +104,8 @@ export class ProgressTrackingService extends BaseService<Progress> {
   async exportReportCard(studentId: string, year: number, semester: number) {
     const aggregation = this.model
       .aggregate()
-      .match({ studentId: new Types.ObjectId(studentId), year, semester })
+      .match({ studentId: new Types.ObjectId(studentId), ...(semester !== 0 && { semester }), year })
+      .sort({ year: 1 })
       .lookup({
         from: 'students',
         localField: 'studentId',

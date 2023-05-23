@@ -103,21 +103,50 @@ export class StudentController {
         throw new HttpException(await i18n.translate(`message.nonexistent_child`), HttpStatus.NOT_FOUND);
       }
       const [{ data, average }] = await this._progressTrackingService.exportReportCard(studentId, parseInt(query.year), parseInt(query.semester));
-      const xlsxData = data?.map((item) => {
-        return {
-          [ExportReportCardColumns.SUBJECT_NAME]: item.subject.name,
-          [ExportReportCardColumns.FREQUENT_MARK]: item.frequentMark,
-          [ExportReportCardColumns.MID_TERM_MARK]: item.middleExamMark,
-          [ExportReportCardColumns.FINAL_MARK]: item.finalExamMark,
-          [ExportReportCardColumns.AVERAGE_MARK]: item.averageMark,
+      if (parseInt(query.semester) !== 0) {
+        const xlsxData = data?.map((item) => {
+          return {
+            [ExportReportCardColumns.SUBJECT_NAME]: item.subject.name,
+            [ExportReportCardColumns.FREQUENT_MARK]: item.frequentMark,
+            [ExportReportCardColumns.MID_TERM_MARK]: item.middleExamMark,
+            [ExportReportCardColumns.FINAL_MARK]: item.finalExamMark,
+            [ExportReportCardColumns.AVERAGE_MARK]: item.averageMark,
+          };
+        });
+        const additionalData = {
+          [ExportReportCardColumns.SEMESTER_MARK]: average[0].averageSemesterMark,
         };
-      });
-      const additionalData = {
-        [ExportReportCardColumns.SEMESTER_MARK]: average[0].averageSemesterMark,
-      };
-      const fileName = `Report_Card_Data_${childrenExisted.name}_semester${query.semester}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
-      const file = await this._filesServices.exportXLSXFile(fileName, xlsxData, 'Report_Card_Data', user, { wch: 20 }, additionalData);
-      return new ApiResponse(file);
+        const fileName = `Report_Card_Data_${childrenExisted.name}_semester${query.semester}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
+        const file = await this._filesServices.exportSemesterReportFile(fileName, xlsxData, 'Report_Card_Data', user, childrenExisted, { wch: 20 }, additionalData);
+        return new ApiResponse(file);
+      } else {
+        const semester1Data = data?.filter((item) => item.semester === 1);
+        const semester2Data = data?.filter((item) => item.semester === 2);
+        const semester1XlsxData = semester1Data?.map((item) => {
+          return {
+            [ExportReportCardColumns.SUBJECT_NAME]: item.subject.name,
+            [ExportReportCardColumns.FREQUENT_MARK]: item.frequentMark,
+            [ExportReportCardColumns.MID_TERM_MARK]: item.middleExamMark,
+            [ExportReportCardColumns.FINAL_MARK]: item.finalExamMark,
+            [ExportReportCardColumns.AVERAGE_MARK]: item.averageMark,
+          };
+        });
+        const semester2XlsxData = semester2Data?.map((item) => {
+          return {
+            [ExportReportCardColumns.SUBJECT_NAME]: item.subject.name,
+            [ExportReportCardColumns.FREQUENT_MARK]: item.frequentMark,
+            [ExportReportCardColumns.MID_TERM_MARK]: item.middleExamMark,
+            [ExportReportCardColumns.FINAL_MARK]: item.finalExamMark,
+            [ExportReportCardColumns.AVERAGE_MARK]: item.averageMark,
+          };
+        });
+        const additionalData = {
+          [ExportReportCardColumns.YEAR_MARK]: average[0].averageSemesterMark,
+        };
+        const fileName = `Report_Card_Data_${childrenExisted.name}_year${query.semester}_${moment().format('YYYY_MM_DD')}`;
+        const file = await this._filesServices.exportYearReportFile(fileName, semester1XlsxData, semester2XlsxData, 'Report_Card_Data', user, { wch: 20 }, additionalData);
+        return new ApiResponse(file);
+      }
     } catch (error) {
       throw new HttpException(error?.response ?? (await i18n.translate(`message.internal_server_error`)), error?.status ?? HttpStatus.INTERNAL_SERVER_ERROR, {
         cause: error,

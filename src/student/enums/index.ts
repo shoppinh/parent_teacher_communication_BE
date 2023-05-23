@@ -5,4 +5,5 @@ export enum ExportReportCardColumns {
   AVERAGE_MARK = 'Average Mark',
   SUBJECT_NAME = 'Subject Name',
   SEMESTER_MARK = 'Semester Mark',
+  YEAR_MARK = 'Year Mark'
 }
